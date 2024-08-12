@@ -6,5 +6,5 @@ require (
 	go.osspkg.com/casecheck v0.3.0
 	go.osspkg.com/errors v0.3.1
 	go.osspkg.com/random v0.3.1
-	golang.org/x/crypto v0.25.0
+	golang.org/x/crypto v0.26.0
 )
