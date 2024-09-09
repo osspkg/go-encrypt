@@ -4,5 +4,5 @@ go.osspkg.com/errors v0.3.1 h1:F9m/EEd/Ot2jba/TV7tvVRIpWXzIpNLc7vRJKcBD86A=
 go.osspkg.com/errors v0.3.1/go.mod h1:dKXe6Rt07nzY7OyKQNZ8HGBicZ2uQ5TKEoVFnVFOK44=
 go.osspkg.com/random v0.3.1 h1:bD3lJUKnLk7DsmF86PsmgDy3K56BFoo5KbxiF4kx20o=
 go.osspkg.com/random v0.3.1/go.mod h1:6gWEblgbMt6EMIJG/KPz+YiLzvuxGtHj54TK4BeBzIE=
-golang.org/x/crypto v0.25.0 h1:ypSNr+bnYL2YhwoMt2zPxHFmbAN1KZs/njMG3hxUp30=
-golang.org/x/crypto v0.25.0/go.mod h1:T+wALwcMOSE0kXgUAnPAHqTLW+XHgcELELW8VaDgm/M=
+golang.org/x/crypto v0.27.0 h1:GXm2NjJrPaiv/h1tb2UH8QfgC/hOf/+z0p6PT8o1w7A=
+golang.org/x/crypto v0.27.0/go.mod h1:1Xngt8kV6Dvbssa53Ziq6Eqn0HqbZi5Z6R0ZpwQzt70=
