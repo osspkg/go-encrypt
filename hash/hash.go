@@ -1,39 +1,98 @@
 /*
- *  Copyright (c) 2024 Mikhail Knyazhev <markus621@yandex.ru>. All rights reserved.
+ *  Copyright (c) 2024-2025 Mikhail Knyazhev <markus621@yandex.ru>. All rights reserved.
  *  Use of this source code is governed by a BSD 3-Clause license that can be found in the LICENSE file.
  */
 
 package hash
 
 import (
-	"crypto/md5"
-	"crypto/sha1"
-	"crypto/sha256"
-	"crypto/sha512"
+	"encoding/base64"
 	"fmt"
+	"hash"
 	"io"
+	"reflect"
 )
 
-func SHA1(v string) string {
-	h := sha1.New()
-	io.WriteString(h, v) // nolint: errcheck
-	return fmt.Sprintf("%x", h.Sum(nil))
+type Adapter struct {
+	H hash.Hash
 }
 
-func SHA256(v string) string {
-	h := sha256.New()
-	io.WriteString(h, v) // nolint: errcheck
-	return fmt.Sprintf("%x", h.Sum(nil))
+func (a *Adapter) Read(r io.Reader) error {
+	if a.H == nil {
+		return fmt.Errorf("hash is nil")
+	}
+	if r == nil {
+		return fmt.Errorf("reader is nil")
+	}
+
+	_, err := io.Copy(a.H, r)
+	return err
 }
 
-func SHA512(v string) string {
-	h := sha512.New()
-	io.WriteString(h, v) // nolint: errcheck
-	return fmt.Sprintf("%x", h.Sum(nil))
+func (a *Adapter) Write(b []byte) error {
+	if a.H == nil {
+		return fmt.Errorf("hash is nil")
+	}
+
+	_, err := a.H.Write(b)
+	return err
 }
 
-func MD5(v string) string {
-	h := md5.New()
-	io.WriteString(h, v) // nolint: errcheck
-	return fmt.Sprintf("%x", h.Sum(nil))
+func (a *Adapter) WriteString(s string) error {
+	if a.H == nil {
+		return fmt.Errorf("hash is nil")
+	}
+
+	_, err := io.WriteString(a.H, s)
+	return err
+}
+
+func (a *Adapter) WriteAny(args ...any) error {
+	if a.H == nil {
+		return fmt.Errorf("hash is nil")
+	}
+
+	for _, arg := range args {
+		ref := reflect.ValueOf(arg)
+		if ref.Kind() == reflect.Ptr {
+			ref = ref.Elem()
+		}
+		if _, err := fmt.Fprintf(a.H, "%#v", ref.Interface()); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (a *Adapter) Result() []byte {
+	if a.H == nil {
+		return nil
+	}
+
+	return a.H.Sum(nil)
+}
+
+func (a *Adapter) ResultHex() string {
+	if a.H == nil {
+		return ""
+	}
+
+	return fmt.Sprintf("%x", a.H.Sum(nil))
+}
+
+func (a *Adapter) ResultBase64() string {
+	if a.H == nil {
+		return ""
+	}
+
+	return base64.StdEncoding.EncodeToString(a.H.Sum(nil))
+}
+
+func (a *Adapter) Reset() {
+	if a.H == nil {
+		return
+	}
+
+	a.H.Reset()
 }
