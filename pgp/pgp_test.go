@@ -10,6 +10,7 @@ import (
 	"crypto"
 	"testing"
 
+	"go.osspkg.com/casecheck"
 	"go.osspkg.com/encrypt/pgp"
 )
 
@@ -20,21 +21,19 @@ func TestUnit_PGP(t *testing.T) {
 		Comment: "Test Comment",
 	}
 	crt, err := pgp.NewCert(conf, crypto.MD5, 1024, "tool", "dewep utils")
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
+	casecheck.NoError(t, err)
 	t.Log(string(crt.Private), string(crt.Public))
 
 	in := bytes.NewBufferString("Hello world")
 	out := &bytes.Buffer{}
 
 	sig := pgp.New()
-	if err = sig.SetKey(crt.Private, ""); err != nil {
-		t.Fatalf(err.Error())
-	}
+	err = sig.SetKey(crt.Private, "")
+	casecheck.NoError(t, err)
+
 	sig.SetHash(crypto.MD5, 1024)
-	if err = sig.Sign(in, out); err != nil {
-		t.Fatalf(err.Error())
-	}
+	err = sig.Sign(in, out)
+	casecheck.NoError(t, err)
+
 	t.Log(out.String())
 }
