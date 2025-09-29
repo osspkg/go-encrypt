@@ -1,7 +1,7 @@
 go.osspkg.com/casecheck v0.3.0 h1:x15blEszElbrHrEH5H02JIIhGIg/lGZzIt1kQlD3pwM=
 go.osspkg.com/casecheck v0.3.0/go.mod h1:TRFXDMFJEOtnlp3ET2Hix3osbxwPWhvaiT/HfD3+gBA=
-go.osspkg.com/errors v0.3.1 h1:F9m/EEd/Ot2jba/TV7tvVRIpWXzIpNLc7vRJKcBD86A=
-go.osspkg.com/errors v0.3.1/go.mod h1:dKXe6Rt07nzY7OyKQNZ8HGBicZ2uQ5TKEoVFnVFOK44=
+go.osspkg.com/errors v0.4.0 h1:E17+WyUzTXEHCTxGm8lOMPOOojzHG1lsOuQtTVGoATQ=
+go.osspkg.com/errors v0.4.0/go.mod h1:s75ZovPemYtrCtRPVsbQNq9MgMbmLMK1NEypr+uwjXI=
 go.osspkg.com/random v0.5.0 h1:6x2CQ5Vb6PVyuGi6Ao3K6Pr2fzVviBPCEEJC5HQNSmg=
 go.osspkg.com/random v0.5.0/go.mod h1:lsg3FI87PQdjhVWIVo2GXyPBclipljUxjMlWqRl2cck=
 golang.org/x/crypto v0.42.0 h1:chiH31gIWm57EkTXpwnqf8qeuMUi0yekh6mT2AvFlqI=
