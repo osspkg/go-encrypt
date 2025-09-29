@@ -4,7 +4,7 @@ go 1.24.4
 
 require (
 	go.osspkg.com/casecheck v0.3.0
-	go.osspkg.com/errors v0.3.1
+	go.osspkg.com/errors v0.4.0
 	go.osspkg.com/random v0.5.0
 	golang.org/x/crypto v0.42.0
 )
