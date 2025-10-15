@@ -6,6 +6,7 @@
 package x509cert
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"time"
@@ -14,7 +15,7 @@ import (
 )
 
 type OCSPStatusResolver interface {
-	OCSPStatusResolve(*ocsp.Request) (OCSPStatus, error)
+	OCSPStatusResolve(ctx context.Context, r *ocsp.Request) (OCSPStatus, error)
 }
 
 type OCSPStatus int
@@ -45,7 +46,7 @@ func (v *OCSPServer) HTTPHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	status, err := v.Resolver.OCSPStatusResolve(req)
+	status, err := v.Resolver.OCSPStatusResolve(r.Context(), req)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"go.osspkg.com/casecheck"
+
 	"go.osspkg.com/encrypt/pgp"
 )
 
