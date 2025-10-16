@@ -21,9 +21,10 @@ type OCSPStatusResolver interface {
 type OCSPStatus int
 
 const (
-	OCSPStatusUnknown OCSPStatus = ocsp.Unknown
-	OCSPStatusGood    OCSPStatus = ocsp.Good
-	OCSPStatusRevoked OCSPStatus = ocsp.Revoked
+	OCSPStatusUnknown      OCSPStatus = ocsp.Unknown
+	OCSPStatusGood         OCSPStatus = ocsp.Good
+	OCSPStatusRevoked      OCSPStatus = ocsp.Revoked
+	OCSPStatusServerFailed OCSPStatus = ocsp.ServerFailed
 )
 
 type OCSPServer struct {

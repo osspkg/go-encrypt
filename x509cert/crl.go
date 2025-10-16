@@ -19,7 +19,7 @@ type RevocationEntity struct {
 	RevocationTime time.Time `yaml:"revocation_time" json:"revocation_time"`
 }
 
-func NewCRL(ca Cert, serialNumber int64, updateInterval time.Duration, revs []RevocationEntity) ([]byte, error) {
+func NewCRL(ca Cert, serialNumber int64, updateInterval time.Duration, revs []RevocationEntity) (*RawCRL, error) {
 	list := make([]x509.RevocationListEntry, 0, len(revs))
 	for _, rev := range revs {
 		list = append(list, x509.RevocationListEntry{
@@ -43,5 +43,5 @@ func NewCRL(ca Cert, serialNumber int64, updateInterval time.Duration, revs []Re
 		return nil, fmt.Errorf("failed create revocation list: %w", err)
 	}
 
-	return encodePEM(b, pemTypeRevocationList), nil
+	return &RawCRL{b}, nil
 }
