@@ -3,7 +3,7 @@
  *  Use of this source code is governed by a BSD 3-Clause license that can be found in the LICENSE file.
  */
 
-package x509cert
+package pki
 
 import (
 	_ "crypto/md5"

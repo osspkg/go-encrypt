@@ -3,7 +3,7 @@
  *  Use of this source code is governed by a BSD 3-Clause license that can be found in the LICENSE file.
  */
 
-package x509cert
+package pki
 
 import (
 	"context"
@@ -28,7 +28,7 @@ const (
 )
 
 type OCSPServer struct {
-	CA             Cert
+	CA             Certificate
 	Resolver       OCSPStatusResolver
 	UpdateInterval time.Duration
 }
@@ -61,7 +61,7 @@ func (v *OCSPServer) HTTPHandler(w http.ResponseWriter, r *http.Request) {
 		ProducedAt:   time.Now(),
 	}
 
-	resp, err := ocsp.CreateResponse(v.CA.Cert.Certificate, v.CA.Cert.Certificate, response, v.CA.Key.Key)
+	resp, err := ocsp.CreateResponse(v.CA.Crt, v.CA.Crt, response, v.CA.Key)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
