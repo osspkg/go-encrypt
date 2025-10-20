@@ -7,10 +7,12 @@ package pki
 
 import (
 	"context"
+	"crypto/x509/pkix"
 	"io"
 	"net/http"
 	"time"
 
+	"go.osspkg.com/encrypt/pki/internal/xocsp"
 	"golang.org/x/crypto/ocsp"
 )
 
@@ -41,27 +43,53 @@ func (v *OCSPServer) HTTPHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req, err := ocsp.ParseRequest(raw)
+	req, err := xocsp.ParseRequest(raw)
 	if err != nil {
 		http.Error(w, "invalid ocsp data", http.StatusBadRequest)
 		return
 	}
 
-	status, err := v.Resolver.OCSPStatusResolve(r.Context(), req)
+	var nonce []byte
+	for _, extension := range req.Extensions {
+		if extension.Id.Equal(xocsp.OIDNonce) {
+			nonce = extension.Value
+		}
+	}
+
+	status, err := v.Resolver.OCSPStatusResolve(r.Context(), &ocsp.Request{
+		HashAlgorithm:  req.HashAlgorithm,
+		IssuerNameHash: req.IssuerNameHash,
+		IssuerKeyHash:  req.IssuerKeyHash,
+		SerialNumber:   req.SerialNumber,
+	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	response := ocsp.Response{
+	template := xocsp.Response{
 		Status:       int(status),
 		SerialNumber: req.SerialNumber,
 		ThisUpdate:   time.Now(),
 		NextUpdate:   time.Now().Add(v.UpdateInterval),
 		ProducedAt:   time.Now(),
+		Certificate:  v.CA.Crt,
 	}
 
-	resp, err := ocsp.CreateResponse(v.CA.Crt, v.CA.Crt, response, v.CA.Key)
+	if len(nonce) > 0 {
+		template.Extensions = append(template.Extensions, pkix.Extension{
+			Id:       xocsp.OIDNonce,
+			Critical: false,
+			Value:    nonce,
+		})
+		template.ExtraExtensions = append(template.ExtraExtensions, pkix.Extension{
+			Id:       xocsp.OIDNonce,
+			Critical: false,
+			Value:    nonce,
+		})
+	}
+
+	resp, err := xocsp.CreateResponse(v.CA.Crt, v.CA.Crt, template, v.CA.Key)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
