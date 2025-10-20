@@ -82,11 +82,6 @@ func (v *OCSPServer) HTTPHandler(w http.ResponseWriter, r *http.Request) {
 			Critical: false,
 			Value:    nonce,
 		})
-		template.ExtraExtensions = append(template.ExtraExtensions, pkix.Extension{
-			Id:       xocsp.OIDNonce,
-			Critical: false,
-			Value:    nonce,
-		})
 	}
 
 	resp, err := xocsp.CreateResponse(v.CA.Crt, v.CA.Crt, template, v.CA.Key)

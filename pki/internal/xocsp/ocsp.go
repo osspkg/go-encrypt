@@ -125,6 +125,7 @@ type responseData struct {
 	RawResponderID asn1.RawValue
 	ProducedAt     time.Time `asn1:"generalized"`
 	Responses      []singleResponse
+	Extensions     []pkix.Extension `asn1:"explicit,tag:1,optional"`
 }
 
 type singleResponse struct {
@@ -752,6 +753,7 @@ func CreateResponse(issuer, responderCert *x509.Certificate, template Response, 
 		RawResponderID: rawResponderID,
 		ProducedAt:     time.Now().Truncate(time.Minute).UTC(),
 		Responses:      []singleResponse{innerResponse},
+		Extensions:     template.Extensions,
 	}
 
 	tbsResponseDataDER, err := asn1.Marshal(tbsResponseData)
