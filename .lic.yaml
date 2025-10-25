@@ -1,3 +1,5 @@
 author: Mikhail Knyazhev <markus621@yandex.ru>
 lic_short: "BSD 3-Clause"
 lic_file: LICENSE
+ignore_files:
+  - pki/internal/xocsp/ocsp.go

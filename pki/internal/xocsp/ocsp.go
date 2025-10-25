@@ -1,3 +1,5 @@
+//FORK: golang.org/x/crypto/ocsp
+
 // Copyright 2013 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
@@ -293,10 +295,6 @@ const (
 	Revoked = 1
 	// Unknown means that the OCSP responder doesn't know about the certificate.
 	Unknown = 2
-	// ServerFailed is unused and was never used (see
-	// https://go-review.googlesource.com/#/c/18944). ParseResponse will
-	// return a ResponseError when an error response is parsed.
-	ServerFailed = 3
 )
 
 // The enumerated reasons for revoking a certificate. See RFC 5280.
@@ -327,7 +325,7 @@ type Request struct {
 func (req *Request) Marshal() ([]byte, error) {
 	hashAlg := getOIDFromHashAlgorithm(req.HashAlgorithm)
 	if hashAlg == nil {
-		return nil, errors.New("Unknown hash algorithm")
+		return nil, errors.New("unknown hash algorithm")
 	}
 	return asn1.Marshal(ocspRequest{
 		tbsRequest{
@@ -479,6 +477,8 @@ func ParseResponse(bytes []byte, issuer *x509.Certificate) (*Response, error) {
 // multiple statuses and cert is not nil, then ParseResponseForCert will return
 // the first status which contains a matching serial, otherwise it will return an
 // error. If cert is nil, then the first status in the response will be returned.
+//
+//nolint:gocyclo
 func ParseResponseForCert(bytes []byte, cert, issuer *x509.Certificate) (*Response, error) {
 	var resp responseASN1
 	rest, err := asn1.Unmarshal(bytes, &resp)
@@ -687,7 +687,9 @@ func CreateRequest(cert, issuer *x509.Certificate, opts *RequestOptions) ([]byte
 // If template.IssuerHash is not set, SHA1 will be used.
 //
 // The ProducedAt date is automatically set to the current date, to the nearest minute.
-func CreateResponse(issuer, responderCert *x509.Certificate, template Response, priv crypto.Signer) ([]byte, error) {
+func CreateResponse(
+	status ResponseStatus, issuer, responderCert *x509.Certificate, template Response, priv crypto.Signer,
+) ([]byte, error) {
 	var publicKeyInfo struct {
 		Algorithm pkix.AlgorithmIdentifier
 		PublicKey asn1.BitString
@@ -792,7 +794,7 @@ func CreateResponse(issuer, responderCert *x509.Certificate, template Response, 
 	}
 
 	return asn1.Marshal(responseASN1{
-		Status: asn1.Enumerated(Success),
+		Status: asn1.Enumerated(status),
 		Response: responseBytes{
 			ResponseType: idPKIXOCSPBasic,
 			Response:     responseDER,
