@@ -92,13 +92,12 @@ func MarshalKeyPEM(key crypto.Signer) ([]byte, error) {
 	}
 
 	var prefix string
-	for name, a := range algorithms.Yield() {
-		if !a.IsPrivateKey(key) {
-			continue
-		}
-
-		prefix = name.String()
-	}
+	//for name, a := range algorithms.Yield() {
+	//	if !a.IsPrivateKey(key) {
+	//		continue
+	//	}
+	//	prefix = name.String()
+	//}
 
 	return CreatePEMBlock(b, PrivateKeyPEMBlock, prefix), nil
 }

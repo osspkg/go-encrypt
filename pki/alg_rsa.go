@@ -52,17 +52,16 @@ func (*_rsa) IsValidPair(key crypto.Signer, cert x509.Certificate) bool {
 	return reflect.DeepEqual(pk, ck)
 }
 
-func (*_rsa) Generate(ct CertType) (crypto.Signer, error) {
+func (*_rsa) Generate(alg x509.SignatureAlgorithm) (crypto.Signer, error) {
 	var bits int
-	switch ct {
-	case RootCaCert:
+	switch alg {
+	case x509.SHA512WithRSA, x509.SHA384WithRSA,
+		x509.SHA512WithRSAPSS, x509.SHA384WithRSAPSS:
 		bits = 4096
-	case InterCACert:
+	case x509.SHA256WithRSA:
 		bits = 3072
-	case ClientCert:
-		bits = 2048
 	default:
-		return nil, fmt.Errorf("unknown certificate bits for '%s'", ct)
+		return nil, fmt.Errorf("unknown certificate bits for '%s'", alg.String())
 	}
 
 	return rsa.GenerateKey(rand.Reader, bits)
