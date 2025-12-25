@@ -19,24 +19,30 @@ func NewIntermediateCA(
 	deadline time.Duration,
 	serialNumber int64,
 ) (*Certificate, error) {
+	confSigAlg := conf.SignatureAlgorithm
+	if confSigAlg == x509.UnknownSignatureAlgorithm {
+		confSigAlg = rootCA.Crt.SignatureAlgorithm
+	}
+
+	level := rootCA.Crt.MaxPathLen - 1
 
 	currTime := time.Now()
 	template := &x509.Certificate{
 		IsCA:                  true,
 		BasicConstraintsValid: true,
-		SignatureAlgorithm:    rootCA.Crt.SignatureAlgorithm,
+		SignatureAlgorithm:    confSigAlg,
 		SerialNumber:          big.NewInt(serialNumber),
 		Subject:               conf.Subject(),
 		NotBefore:             currTime,
 		NotAfter:              currTime.Add(deadline),
-		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageCRLSign,
+		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign | x509.KeyUsageCRLSign,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
 		OCSPServer:            stringsPrepare(conf.OCSPServerURLs),
 		IssuingCertificateURL: stringsPrepare(conf.IssuingCertificateURLs),
 		CRLDistributionPoints: stringsPrepare(conf.CRLDistributionPointURLs),
-		ExtraExtensions:       conf.ExtraExtensions(),
-		EmailAddresses:        stringsPrepare(conf.EmailAddress),
-		MaxPathLenZero:        false,
-		MaxPathLen:            1,
+		ExtraExtensions:       conf.extraExtensions(),
+		MaxPathLenZero:        level <= 0,
+		MaxPathLen:            level,
 	}
 
 	if !rootCA.IsValidPair() {
@@ -47,7 +53,7 @@ func NewIntermediateCA(
 		return nil, fmt.Errorf("invalid Root CA certificate: is not CA")
 	}
 
-	if rootCA.Crt.MaxPathLen != 2 {
+	if template.MaxPathLen < 0 {
 		return nil, fmt.Errorf("invalid Root CA certificate: not supported Intermediate CA")
 	}
 
@@ -65,7 +71,7 @@ func NewIntermediateCA(
 		return nil, fmt.Errorf("unknown signature algorithm: %s", algName.String())
 	}
 
-	key, err := alg.Generate(InterCACert)
+	key, err := alg.Generate(template.SignatureAlgorithm)
 	if err != nil {
 		return nil, fmt.Errorf("failed generating private key: %w", err)
 	}

@@ -7,6 +7,7 @@ package pki
 
 import (
 	"crypto/rand"
+	"crypto/sha256"
 	"crypto/x509"
 	"fmt"
 	"math/big"
@@ -43,7 +44,7 @@ func NewCSR(signatureAlgorithm x509.SignatureAlgorithm, domains ...string) (*Req
 		template.Subject.CommonName = template.IPAddresses[0].String()
 	}
 
-	key, err := alg.Generate(ClientCert)
+	key, err := alg.Generate(template.SignatureAlgorithm)
 	if err != nil {
 		return nil, fmt.Errorf("failed generating private key: %w", err)
 	}
@@ -76,32 +77,44 @@ func SignCSR(
 		return nil, fmt.Errorf("invalid Root CA certificate: is not CA")
 	}
 
-	if rootCA.Crt.MaxPathLen != 1 {
+	if rootCA.Crt.MaxPathLen != 0 {
 		return nil, fmt.Errorf("invalid Root CA certificate: not supported generate client certificate")
 	}
 
-	if _, ok := signatures.Get(csr.SignatureAlgorithm); !ok {
-		return nil, fmt.Errorf("unknown signature algorithm: %s", csr.SignatureAlgorithm.String())
+	confSigAlg := conf.SignatureAlgorithm
+	if confSigAlg == x509.UnknownSignatureAlgorithm {
+		confSigAlg = rootCA.Crt.SignatureAlgorithm
+	}
+
+	if _, ok := signatures.Get(confSigAlg); !ok {
+		return nil, fmt.Errorf("unknown signature algorithm: %s", confSigAlg.String())
 	}
 
 	currTime := time.Now()
 	template := &x509.Certificate{
 		IsCA:                  false,
 		BasicConstraintsValid: true,
-		SignatureAlgorithm:    rootCA.Crt.SignatureAlgorithm,
+		SignatureAlgorithm:    confSigAlg,
 		SerialNumber:          big.NewInt(serialNumber),
 		Subject:               csr.Subject,
 		NotBefore:             currTime,
 		NotAfter:              currTime.Add(deadline),
 		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
-		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
-		OCSPServer:            rootCA.Crt.OCSPServer,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		OCSPServer:            stringsPrepare(conf.OCSPServerURLs),
 		IssuingCertificateURL: stringsPrepare(conf.IssuingCertificateURLs),
-		CRLDistributionPoints: rootCA.Crt.CRLDistributionPoints,
-		EmailAddresses:        rootCA.Crt.EmailAddresses,
+		CRLDistributionPoints: stringsPrepare(conf.CRLDistributionPointURLs),
+		ExtraExtensions:       conf.extraExtensions(),
 		DNSNames:              csr.DNSNames,
 		IPAddresses:           csr.IPAddresses,
 	}
+
+	publicKeyBytes, err := x509.MarshalPKIXPublicKey(csr.PublicKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed marshaling public key: %w", err)
+	}
+	publicKeyHash := sha256.Sum256(publicKeyBytes)
+	template.SubjectKeyId = publicKeyHash[:20]
 
 	b, err := x509.CreateCertificate(rand.Reader, template, rootCA.Crt, csr.PublicKey, rootCA.Key)
 	if err != nil {

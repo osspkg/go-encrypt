@@ -53,17 +53,17 @@ func (*_ecdsa) IsValidPair(key crypto.Signer, cert x509.Certificate) bool {
 	return reflect.DeepEqual(pk, ck)
 }
 
-func (*_ecdsa) Generate(ct CertType) (crypto.Signer, error) {
+func (*_ecdsa) Generate(alg x509.SignatureAlgorithm) (crypto.Signer, error) {
 	var curve elliptic.Curve
-	switch ct {
-	case RootCaCert:
+	switch alg {
+	case x509.ECDSAWithSHA256:
 		curve = elliptic.P256()
-	case InterCACert:
+	case x509.ECDSAWithSHA384:
 		curve = elliptic.P384()
-	case ClientCert:
-		curve = elliptic.P256()
+	case x509.ECDSAWithSHA512:
+		curve = elliptic.P521()
 	default:
-		return nil, fmt.Errorf("unknown certificate curve for '%s'", ct)
+		return nil, fmt.Errorf("unknown certificate curve for '%s'", alg.String())
 	}
 
 	return ecdsa.GenerateKey(curve, rand.Reader)

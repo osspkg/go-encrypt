@@ -24,8 +24,11 @@ func Register(k x509.SignatureAlgorithm, v Algorithm) {
 
 func init() {
 	Register(x509.SHA256WithRSA, &_rsa{})
+	Register(x509.SHA256WithRSAPSS, &_rsa{})
 	Register(x509.SHA384WithRSA, &_rsa{})
+	Register(x509.SHA384WithRSAPSS, &_rsa{})
 	Register(x509.SHA512WithRSA, &_rsa{})
+	Register(x509.SHA512WithRSAPSS, &_rsa{})
 	Register(x509.ECDSAWithSHA256, &_ecdsa{})
 	Register(x509.ECDSAWithSHA384, &_ecdsa{})
 	Register(x509.ECDSAWithSHA512, &_ecdsa{})
@@ -37,13 +40,5 @@ type Algorithm interface {
 	IsRequest(cert x509.CertificateRequest) bool
 	IsCertificate(cert x509.Certificate) bool
 	IsValidPair(key crypto.Signer, cert x509.Certificate) bool
-	Generate(ct CertType) (crypto.Signer, error)
+	Generate(alg x509.SignatureAlgorithm) (crypto.Signer, error)
 }
-
-type CertType string
-
-const (
-	RootCaCert  CertType = "root_ca_cert"
-	InterCACert CertType = "intermediate_ca_cert"
-	ClientCert  CertType = "client_cert"
-)

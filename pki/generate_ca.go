@@ -7,6 +7,7 @@ package pki
 
 import (
 	"crypto/rand"
+	"crypto/sha256"
 	"crypto/x509"
 	"fmt"
 	"math/big"
@@ -17,8 +18,9 @@ func NewCA(
 	conf Config,
 	deadline time.Duration,
 	serialNumber int64,
-	withIntermediate bool,
+	intermediateCount int,
 ) (*Certificate, error) {
+	intermediateCount = max(0, intermediateCount)
 
 	currTime := time.Now()
 	template := &x509.Certificate{
@@ -29,23 +31,18 @@ func NewCA(
 		Subject:               conf.Subject(),
 		NotBefore:             currTime,
 		NotAfter:              currTime.Add(deadline),
-		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageCRLSign,
+		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign | x509.KeyUsageCRLSign,
 		OCSPServer:            stringsPrepare(conf.OCSPServerURLs),
 		IssuingCertificateURL: stringsPrepare(conf.IssuingCertificateURLs),
 		CRLDistributionPoints: stringsPrepare(conf.CRLDistributionPointURLs),
-		ExtraExtensions:       conf.ExtraExtensions(),
-		EmailAddresses:        stringsPrepare(conf.EmailAddress),
-		MaxPathLenZero:        false,
-		MaxPathLen:            1,
+		ExtraExtensions:       conf.extraExtensions(),
+		MaxPathLen:            intermediateCount,
+		MaxPathLenZero:        intermediateCount <= 0,
 	}
 
-	if withIntermediate {
-		template.MaxPathLen = 2
-	}
-
-	algName, ok := signatures.Get(conf.SignatureAlgorithm)
+	algName, ok := signatures.Get(template.SignatureAlgorithm)
 	if !ok {
-		return nil, fmt.Errorf("unknown signature algorithm: %s", conf.SignatureAlgorithm.String())
+		return nil, fmt.Errorf("unknown signature algorithm: %s", template.SignatureAlgorithm.String())
 	}
 
 	alg, ok := algorithms.Get(algName)
@@ -53,10 +50,18 @@ func NewCA(
 		return nil, fmt.Errorf("unknown signature algorithm: %s", algName.String())
 	}
 
-	key, err := alg.Generate(RootCaCert)
+	key, err := alg.Generate(template.SignatureAlgorithm)
 	if err != nil {
 		return nil, fmt.Errorf("failed generating private key: %w", err)
 	}
+
+	publicKeyBytes, err := x509.MarshalPKIXPublicKey(key.Public())
+	if err != nil {
+		return nil, fmt.Errorf("failed marshaling public key: %w", err)
+	}
+	publicKeyHash := sha256.Sum256(publicKeyBytes)
+	template.SubjectKeyId = publicKeyHash[:20]
+	template.AuthorityKeyId = publicKeyHash[:20]
 
 	b, err := x509.CreateCertificate(rand.Reader, template, template, key.Public(), key)
 	if err != nil {
