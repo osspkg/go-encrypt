@@ -42,7 +42,7 @@ func NewIntermediateCA(
 		CRLDistributionPoints: stringsPrepare(conf.CRLDistributionPointURLs),
 		ExtraExtensions:       conf.extraExtensions(),
 		MaxPathLenZero:        level <= 0,
-		MaxPathLen:            level,
+		MaxPathLen:            max(0, level),
 	}
 
 	if !rootCA.IsValidPair() {

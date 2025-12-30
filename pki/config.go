@@ -63,18 +63,11 @@ func (v Config) Subject() pkix.Name {
 func (v Config) extraExtensions() []pkix.Extension {
 	var result []pkix.Extension
 
-	if len(v.CertificatePoliciesURLs) > 0 {
-		result = append(result, pkix.Extension{
-			Id:       asn1.ObjectIdentifier{2, 5, 29, 32},
-			Critical: false,
-			Value:    marshalPolicyCPSUrl(stringsPrepare(v.CertificatePoliciesURLs)...),
-		})
-	} else {
-		result = append(result, pkix.Extension{
-			Id:       asn1.ObjectIdentifier{2, 5, 29, 32, 0},
-			Critical: false,
-		})
-	}
+	result = append(result, pkix.Extension{
+		Id:       asn1.ObjectIdentifier{2, 5, 29, 32},
+		Critical: false,
+		Value:    marshalPolicyCPSUrl(stringsPrepare(v.CertificatePoliciesURLs)...),
+	})
 
 	return result
 }

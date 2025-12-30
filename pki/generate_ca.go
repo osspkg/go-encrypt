@@ -31,13 +31,13 @@ func NewCA(
 		Subject:               conf.Subject(),
 		NotBefore:             currTime,
 		NotAfter:              currTime.Add(deadline),
-		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign | x509.KeyUsageCRLSign,
+		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageCRLSign,
 		OCSPServer:            stringsPrepare(conf.OCSPServerURLs),
 		IssuingCertificateURL: stringsPrepare(conf.IssuingCertificateURLs),
 		CRLDistributionPoints: stringsPrepare(conf.CRLDistributionPointURLs),
-		ExtraExtensions:       conf.extraExtensions(),
-		MaxPathLen:            intermediateCount,
-		MaxPathLenZero:        intermediateCount <= 0,
+		//ExtraExtensions:       conf.extraExtensions(),
+		MaxPathLen:     intermediateCount,
+		MaxPathLenZero: intermediateCount <= 0,
 	}
 
 	algName, ok := signatures.Get(template.SignatureAlgorithm)
