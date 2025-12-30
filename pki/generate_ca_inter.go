@@ -32,6 +32,7 @@ func NewIntermediateCA(
 		BasicConstraintsValid: true,
 		SignatureAlgorithm:    confSigAlg,
 		SerialNumber:          big.NewInt(serialNumber),
+		AuthorityKeyId:        rootCA.Crt.SubjectKeyId,
 		Subject:               conf.Subject(),
 		NotBefore:             currTime,
 		NotAfter:              currTime.Add(deadline),
@@ -41,8 +42,8 @@ func NewIntermediateCA(
 		IssuingCertificateURL: stringsPrepare(conf.IssuingCertificateURLs),
 		CRLDistributionPoints: stringsPrepare(conf.CRLDistributionPointURLs),
 		//ExtraExtensions:       conf.extraExtensions(),
+		MaxPathLen:     level,
 		MaxPathLenZero: level <= 0,
-		MaxPathLen:     max(0, level),
 	}
 
 	if !rootCA.IsValidPair() {

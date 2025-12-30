@@ -43,6 +43,7 @@ func NewCRT(
 		BasicConstraintsValid: true,
 		SignatureAlgorithm:    confSigAlg,
 		SerialNumber:          big.NewInt(serialNumber),
+		AuthorityKeyId:        rootCA.Crt.SubjectKeyId,
 		Subject:               conf.Subject(),
 		NotBefore:             currTime,
 		NotAfter:              currTime.Add(deadline),

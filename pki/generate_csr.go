@@ -95,6 +95,7 @@ func SignCSR(
 		BasicConstraintsValid: true,
 		SignatureAlgorithm:    confSigAlg,
 		SerialNumber:          big.NewInt(serialNumber),
+		AuthorityKeyId:        rootCA.Crt.SubjectKeyId,
 		Subject:               csr.Subject,
 		NotBefore:             currTime,
 		NotAfter:              currTime.Add(deadline),
