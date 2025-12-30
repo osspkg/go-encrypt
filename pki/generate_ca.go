@@ -7,7 +7,6 @@ package pki
 
 import (
 	"crypto/rand"
-	"crypto/sha256"
 	"crypto/x509"
 	"fmt"
 	"math/big"
@@ -55,13 +54,13 @@ func NewCA(
 		return nil, fmt.Errorf("failed generating private key: %w", err)
 	}
 
-	publicKeyBytes, err := x509.MarshalPKIXPublicKey(key.Public())
-	if err != nil {
-		return nil, fmt.Errorf("failed marshaling public key: %w", err)
-	}
-	publicKeyHash := sha256.Sum256(publicKeyBytes)
-	template.SubjectKeyId = publicKeyHash[:20]
-	template.AuthorityKeyId = publicKeyHash[:20]
+	//publicKeyBytes, err := x509.MarshalPKIXPublicKey(key.Public())
+	//if err != nil {
+	//	return nil, fmt.Errorf("failed marshaling public key: %w", err)
+	//}
+	//publicKeyHash := sha256.Sum256(publicKeyBytes)
+	//template.SubjectKeyId = publicKeyHash[:20]
+	//template.AuthorityKeyId = publicKeyHash[:20]
 
 	b, err := x509.CreateCertificate(rand.Reader, template, template, key.Public(), key)
 	if err != nil {

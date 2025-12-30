@@ -7,7 +7,6 @@ package pki
 
 import (
 	"crypto/rand"
-	"crypto/sha256"
 	"crypto/x509"
 	"fmt"
 	"math/big"
@@ -109,12 +108,12 @@ func SignCSR(
 		IPAddresses: csr.IPAddresses,
 	}
 
-	publicKeyBytes, err := x509.MarshalPKIXPublicKey(csr.PublicKey)
-	if err != nil {
-		return nil, fmt.Errorf("failed marshaling public key: %w", err)
-	}
-	publicKeyHash := sha256.Sum256(publicKeyBytes)
-	template.SubjectKeyId = publicKeyHash[:20]
+	//publicKeyBytes, err := x509.MarshalPKIXPublicKey(csr.PublicKey)
+	//if err != nil {
+	//	return nil, fmt.Errorf("failed marshaling public key: %w", err)
+	//}
+	//publicKeyHash := sha256.Sum256(publicKeyBytes)
+	//template.SubjectKeyId = publicKeyHash[:20]
 
 	b, err := x509.CreateCertificate(rand.Reader, template, rootCA.Crt, csr.PublicKey, rootCA.Key)
 	if err != nil {
