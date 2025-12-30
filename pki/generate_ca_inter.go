@@ -40,9 +40,9 @@ func NewIntermediateCA(
 		OCSPServer:            stringsPrepare(conf.OCSPServerURLs),
 		IssuingCertificateURL: stringsPrepare(conf.IssuingCertificateURLs),
 		CRLDistributionPoints: stringsPrepare(conf.CRLDistributionPointURLs),
-		ExtraExtensions:       conf.extraExtensions(),
-		MaxPathLenZero:        level <= 0,
-		MaxPathLen:            max(0, level),
+		//ExtraExtensions:       conf.extraExtensions(),
+		MaxPathLenZero: level <= 0,
+		MaxPathLen:     max(0, level),
 	}
 
 	if !rootCA.IsValidPair() {

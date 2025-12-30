@@ -52,7 +52,7 @@ func NewCRT(
 		OCSPServer:            stringsPrepare(conf.OCSPServerURLs),
 		IssuingCertificateURL: stringsPrepare(conf.IssuingCertificateURLs),
 		CRLDistributionPoints: stringsPrepare(conf.CRLDistributionPointURLs),
-		ExtraExtensions:       conf.extraExtensions(),
+		//ExtraExtensions:       conf.extraExtensions(),
 	}
 
 	if template.NotAfter.After(rootCA.Crt.NotAfter) {

@@ -104,9 +104,9 @@ func SignCSR(
 		OCSPServer:            stringsPrepare(conf.OCSPServerURLs),
 		IssuingCertificateURL: stringsPrepare(conf.IssuingCertificateURLs),
 		CRLDistributionPoints: stringsPrepare(conf.CRLDistributionPointURLs),
-		ExtraExtensions:       conf.extraExtensions(),
-		DNSNames:              csr.DNSNames,
-		IPAddresses:           csr.IPAddresses,
+		//ExtraExtensions:       conf.extraExtensions(),
+		DNSNames:    csr.DNSNames,
+		IPAddresses: csr.IPAddresses,
 	}
 
 	publicKeyBytes, err := x509.MarshalPKIXPublicKey(csr.PublicKey)
