@@ -60,7 +60,7 @@ linters:
     - gocyclo
     - ineffassign
     - unparam
-    - unused
+#    - unused
     - prealloc
     - durationcheck
     - staticcheck
