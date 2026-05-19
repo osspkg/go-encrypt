@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2024-2025 Mikhail Knyazhev <markus621@yandex.ru>. All rights reserved.
+ *  Copyright (c) 2024-2026 Mikhail Knyazhev <markus621@yandex.com>. All rights reserved.
  *  Use of this source code is governed by a BSD 3-Clause license that can be found in the LICENSE file.
  */
 
@@ -28,18 +28,18 @@ type policyInformation struct {
 }
 
 func marshalPolicyCPSUrl(urls ...string) []byte {
-	info := policyInformation{
+	cpsInfo := policyInformation{
 		PolicyIdentifier: asn1.ObjectIdentifier{2, 23, 140, 1, 2, 1},
 		PolicyQualifiers: make([]policyQualifierInfo, 0, len(urls)),
 	}
 
 	for _, url := range urls {
-		info.PolicyQualifiers = append(info.PolicyQualifiers, policyQualifierInfo{
+		cpsInfo.PolicyQualifiers = append(cpsInfo.PolicyQualifiers, policyQualifierInfo{
 			PolicyQualifierID: asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 2, 1},
 			Qualifier:         url,
 		})
 	}
 
-	bytes, _ := asn1.Marshal([]policyInformation{info})
+	bytes, _ := asn1.Marshal([]policyInformation{cpsInfo})
 	return bytes
 }

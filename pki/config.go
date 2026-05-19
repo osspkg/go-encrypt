@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2024-2025 Mikhail Knyazhev <markus621@yandex.ru>. All rights reserved.
+ *  Copyright (c) 2024-2026 Mikhail Knyazhev <markus621@yandex.com>. All rights reserved.
  *  Use of this source code is governed by a BSD 3-Clause license that can be found in the LICENSE file.
  */
 
@@ -63,18 +63,11 @@ func (v Config) Subject() pkix.Name {
 func (v Config) extraExtensions() []pkix.Extension {
 	var result []pkix.Extension
 
-	if len(v.CertificatePoliciesURLs) > 0 {
-		result = append(result, pkix.Extension{
-			Id:       asn1.ObjectIdentifier{2, 5, 29, 32},
-			Critical: false,
-			Value:    marshalPolicyCPSUrl(stringsPrepare(v.CertificatePoliciesURLs)...),
-		})
-	} else {
-		result = append(result, pkix.Extension{
-			Id:       asn1.ObjectIdentifier{2, 5, 29, 32, 0},
-			Critical: false,
-		})
-	}
+	result = append(result, pkix.Extension{
+		Id:       asn1.ObjectIdentifier{2, 5, 29, 32},
+		Critical: false,
+		Value:    marshalPolicyCPSUrl(stringsPrepare(v.CertificatePoliciesURLs)...),
+	})
 
 	return result
 }
