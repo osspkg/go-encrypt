@@ -7,7 +7,7 @@ require (
 	go.osspkg.com/errors v0.4.0
 	go.osspkg.com/ioutils v0.7.4
 	go.osspkg.com/random v0.5.0
-	go.osspkg.com/syncing v0.4.3
+	go.osspkg.com/syncing v0.5.0
 	golang.org/x/crypto v0.51.0
 )
 
