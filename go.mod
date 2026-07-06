@@ -3,7 +3,7 @@ module go.osspkg.com/encrypt
 go 1.25.0
 
 require (
-	go.osspkg.com/casecheck v0.3.0
+	go.osspkg.com/casecheck v0.3.1
 	go.osspkg.com/errors v0.4.0
 	go.osspkg.com/ioutils v0.7.4
 	go.osspkg.com/random v0.5.0
