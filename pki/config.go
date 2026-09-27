@@ -8,27 +8,32 @@ package pki
 import (
 	"crypto/x509"
 	"crypto/x509/pkix"
-	"encoding/asn1"
 )
 
+// Config contains the X.509 subject fields, signature algorithm, and certificate
+// URLs used when generating certificates. A zero SignatureAlgorithm in a
+// signing operation inherits the issuer's algorithm where supported.
 type Config struct {
-	SignatureAlgorithm x509.SignatureAlgorithm `yaml:"signature_algorithm" json:"signature_algorithm"`
+	SignatureAlgorithm x509.SignatureAlgorithm `json:"signature_algorithm" yaml:"signature_algorithm"`
 
-	Organization       string `yaml:"organization,omitempty" json:"organization,omitempty"`
-	OrganizationalUnit string `yaml:"organizational_unit,omitempty" json:"organizational_unit,omitempty"`
-	Country            string `yaml:"country,omitempty" json:"country,omitempty"`
-	Province           string `yaml:"province,omitempty" json:"province,omitempty"`
-	Locality           string `yaml:"locality,omitempty" json:"locality,omitempty"`
-	StreetAddress      string `yaml:"street_address,omitempty" json:"street_address,omitempty"`
-	PostalCode         string `yaml:"postal_code,omitempty" json:"postal_code,omitempty"`
-	CommonName         string `yaml:"common_name,omitempty" json:"common_name,omitempty"`
+	Organization       string `json:"organization,omitempty"        yaml:"organization,omitempty"`
+	OrganizationalUnit string `json:"organizational_unit,omitempty" yaml:"organizational_unit,omitempty"`
+	Country            string `json:"country,omitempty"             yaml:"country,omitempty"`
+	Province           string `json:"province,omitempty"            yaml:"province,omitempty"`
+	Locality           string `json:"locality,omitempty"            yaml:"locality,omitempty"`
+	StreetAddress      string `json:"street_address,omitempty"      yaml:"street_address,omitempty"`
+	PostalCode         string `json:"postal_code,omitempty"         yaml:"postal_code,omitempty"`
+	CommonName         string `json:"common_name,omitempty"         yaml:"common_name,omitempty"`
 
-	OCSPServerURLs           []string `yaml:"ocsp_server_ur_ls,omitempty" json:"ocsp_server_ur_ls,omitempty"`
-	IssuingCertificateURLs   []string `yaml:"issuing_certificate_urls,omitempty" json:"issuing_certificate_urls,omitempty"`
-	CRLDistributionPointURLs []string `yaml:"crl_distribution_point_ur_ls,omitempty" json:"crl_distribution_point_ur_ls,omitempty"`
-	CertificatePoliciesURLs  []string `yaml:"certificate_policies_urls,omitempty" json:"certificate_policies_urls,omitempty"`
+	OCSPServerURLs           []string `json:"ocsp_server_ur_ls,omitempty"            yaml:"ocsp_server_ur_ls,omitempty"`
+	IssuingCertificateURLs   []string `json:"issuing_certificate_urls,omitempty"     yaml:"issuing_certificate_urls,omitempty"`
+	CRLDistributionPointURLs []string `json:"crl_distribution_point_ur_ls,omitempty" yaml:"crl_distribution_point_ur_ls,omitempty"`
+	CertificatePoliciesURLs  []string `json:"certificate_policies_urls,omitempty"    yaml:"certificate_policies_urls,omitempty"`
 }
 
+// Subject returns the distinguished name represented by the subject fields.
+// Empty fields are omitted; each configured attribute is represented by one
+// value.
 func (v Config) Subject() pkix.Name {
 	result := pkix.Name{}
 
@@ -56,18 +61,6 @@ func (v Config) Subject() pkix.Name {
 	if len(v.CommonName) > 0 {
 		result.CommonName = v.CommonName
 	}
-
-	return result
-}
-
-func (v Config) extraExtensions() []pkix.Extension {
-	var result []pkix.Extension
-
-	result = append(result, pkix.Extension{
-		Id:       asn1.ObjectIdentifier{2, 5, 29, 32},
-		Critical: false,
-		Value:    marshalPolicyCPSUrl(stringsPrepare(v.CertificatePoliciesURLs)...),
-	})
 
 	return result
 }

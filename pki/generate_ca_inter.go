@@ -8,17 +8,23 @@ package pki
 import (
 	"crypto/rand"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"math/big"
 	"time"
 )
 
+// NewIntermediateCA generates an intermediate CA signed by rootCA.
 func NewIntermediateCA(
 	conf Config,
 	rootCA Certificate,
 	deadline time.Duration,
 	serialNumber int64,
 ) (*Certificate, error) {
+	if err := validateSigningCA(rootCA, false); err != nil {
+		return nil, err
+	}
+
 	confSigAlg := conf.SignatureAlgorithm
 	if confSigAlg == x509.UnknownSignatureAlgorithm {
 		confSigAlg = rootCA.Crt.SignatureAlgorithm
@@ -41,25 +47,17 @@ func NewIntermediateCA(
 		OCSPServer:            stringsPrepare(conf.OCSPServerURLs),
 		IssuingCertificateURL: stringsPrepare(conf.IssuingCertificateURLs),
 		CRLDistributionPoints: stringsPrepare(conf.CRLDistributionPointURLs),
-		//ExtraExtensions:       conf.extraExtensions(),
+		// ExtraExtensions:       conf.extraExtensions(),
 		MaxPathLen:     level,
 		MaxPathLenZero: level <= 0,
 	}
 
-	if !rootCA.IsValidPair() {
-		return nil, fmt.Errorf("invalid Root CA certificate")
-	}
-
-	if !rootCA.IsCA() {
-		return nil, fmt.Errorf("invalid Root CA certificate: is not CA")
-	}
-
 	if template.MaxPathLen < 0 {
-		return nil, fmt.Errorf("invalid Root CA certificate: not supported Intermediate CA")
+		return nil, errors.New("invalid Root CA certificate: not supported Intermediate CA")
 	}
 
 	if template.NotAfter.After(rootCA.Crt.NotAfter) {
-		return nil, fmt.Errorf("invalid Root CA certificate: NotAfter cannot be in the future")
+		return nil, errors.New("invalid Root CA certificate: NotAfter cannot be in the future")
 	}
 
 	algName, ok := signatures.Get(template.SignatureAlgorithm)
@@ -88,4 +86,17 @@ func NewIntermediateCA(
 	}
 
 	return &Certificate{Key: key, Crt: cert}, nil
+}
+
+func validateSigningCA(rootCA Certificate, requireLeafIssuer bool) error {
+	if !rootCA.IsValidPair() {
+		return errors.New("invalid Root CA certificate")
+	}
+	if !rootCA.IsCA() {
+		return errors.New("invalid Root CA certificate: is not CA")
+	}
+	if requireLeafIssuer && rootCA.Crt.MaxPathLen != 0 {
+		return errors.New("invalid Root CA certificate: not supported generate client certificate")
+	}
+	return nil
 }

@@ -6,40 +6,16 @@
 package pki
 
 import (
-	_ "crypto/md5"
-	_ "crypto/sha1"
-	_ "crypto/sha256"
-	_ "crypto/sha512"
-	"encoding/asn1"
+	_ "crypto/md5"    // Registers the digest for crypto.Hash.Available.
+	_ "crypto/sha1"   // Registers the digest for crypto.Hash.Available.
+	_ "crypto/sha256" // Registers the digest for crypto.Hash.Available.
+	_ "crypto/sha512" // Registers the digest for crypto.Hash.Available.
 
-	_ "golang.org/x/crypto/blake2s"
-	_ "golang.org/x/crypto/md4"
-	_ "golang.org/x/crypto/ripemd160"
-	_ "golang.org/x/crypto/sha3"
+	_ "golang.org/x/crypto/blake2s" // Registers the digest for crypto.Hash.Available.
+	_ "golang.org/x/crypto/sha3"    // Registers the digest for crypto.Hash.Available.
 )
 
-type policyQualifierInfo struct {
-	PolicyQualifierID asn1.ObjectIdentifier
-	Qualifier         string `asn1:"ia5"`
-}
-type policyInformation struct {
-	PolicyIdentifier asn1.ObjectIdentifier
-	PolicyQualifiers []policyQualifierInfo `asn1:"optional"`
-}
-
-func marshalPolicyCPSUrl(urls ...string) []byte {
-	cpsInfo := policyInformation{
-		PolicyIdentifier: asn1.ObjectIdentifier{2, 23, 140, 1, 2, 1},
-		PolicyQualifiers: make([]policyQualifierInfo, 0, len(urls)),
-	}
-
-	for _, url := range urls {
-		cpsInfo.PolicyQualifiers = append(cpsInfo.PolicyQualifiers, policyQualifierInfo{
-			PolicyQualifierID: asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 2, 1},
-			Qualifier:         url,
-		})
-	}
-
-	bytes, _ := asn1.Marshal([]policyInformation{cpsInfo})
-	return bytes
-}
+const (
+	privateFileMode = 0o600
+	publicFileMode  = 0o644
+)

@@ -8,11 +8,13 @@ package pki
 import (
 	"crypto/rand"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"math/big"
 	"time"
 )
 
+// NewCRT generates a leaf certificate signed by rootCA for the supplied domains.
 func NewCRT(
 	conf Config,
 	rootCA Certificate,
@@ -20,16 +22,8 @@ func NewCRT(
 	serialNumber int64,
 	domains ...string,
 ) (*Certificate, error) {
-	if !rootCA.IsValidPair() {
-		return nil, fmt.Errorf("invalid Root CA certificate")
-	}
-
-	if !rootCA.IsCA() {
-		return nil, fmt.Errorf("invalid Root CA certificate: is not CA")
-	}
-
-	if rootCA.Crt.MaxPathLen != 0 {
-		return nil, fmt.Errorf("invalid Root CA certificate: not supported generate client certificate")
+	if err := validateSigningCA(rootCA, true); err != nil {
+		return nil, err
 	}
 
 	confSigAlg := conf.SignatureAlgorithm
@@ -52,11 +46,11 @@ func NewCRT(
 		OCSPServer:            stringsPrepare(conf.OCSPServerURLs),
 		IssuingCertificateURL: stringsPrepare(conf.IssuingCertificateURLs),
 		CRLDistributionPoints: stringsPrepare(conf.CRLDistributionPointURLs),
-		//ExtraExtensions:       conf.extraExtensions(),
+		// ExtraExtensions:       conf.extraExtensions(),
 	}
 
 	if template.NotAfter.After(rootCA.Crt.NotAfter) {
-		return nil, fmt.Errorf("invalid deadline: cannot be in the future then NotAfter Root CA certificate")
+		return nil, errors.New("invalid deadline: cannot be in the future then NotAfter Root CA certificate")
 	}
 
 	var err error
@@ -65,20 +59,11 @@ func NewCRT(
 		return nil, fmt.Errorf("invalid domains: %w", err)
 	}
 
-	if len(template.DNSNames) > 0 {
-		template.Subject.CommonName = template.DNSNames[0]
-	} else if len(template.IPAddresses) > 0 {
-		template.Subject.CommonName = template.IPAddresses[0].String()
-	}
+	setCertificateCommonName(template)
 
-	algName, ok := signatures.Get(template.SignatureAlgorithm)
-	if !ok {
-		return nil, fmt.Errorf("unknown signature algorithm: %s", template.SignatureAlgorithm.String())
-	}
-
-	alg, ok := algorithms.Get(algName)
-	if !ok {
-		return nil, fmt.Errorf("unknown signature algorithm: %s", algName.String())
+	alg, err := algorithmForSignature(template.SignatureAlgorithm)
+	if err != nil {
+		return nil, err
 	}
 
 	key, err := alg.Generate(template.SignatureAlgorithm)
@@ -86,12 +71,12 @@ func NewCRT(
 		return nil, fmt.Errorf("failed generating private key: %w", err)
 	}
 
-	//publicKeyBytes, err := x509.MarshalPKIXPublicKey(key.Public())
-	//if err != nil {
+	// publicKeyBytes, err := x509.MarshalPKIXPublicKey(key.Public())
+	// if err != nil {
 	//	return nil, fmt.Errorf("failed marshaling public key: %w", err)
 	//}
-	//publicKeyHash := sha256.Sum256(publicKeyBytes)
-	//template.SubjectKeyId = publicKeyHash[:20]
+	// publicKeyHash := sha256.Sum256(publicKeyBytes)
+	// template.SubjectKeyId = publicKeyHash[:20]
 
 	b, err := x509.CreateCertificate(rand.Reader, template, rootCA.Crt, key.Public(), rootCA.Key)
 	if err != nil {
@@ -104,4 +89,12 @@ func NewCRT(
 	}
 
 	return &Certificate{Key: key, Crt: cert}, nil
+}
+
+func setCertificateCommonName(template *x509.Certificate) {
+	if len(template.DNSNames) > 0 {
+		template.Subject.CommonName = template.DNSNames[0]
+	} else if len(template.IPAddresses) > 0 {
+		template.Subject.CommonName = template.IPAddresses[0].String()
+	}
 }

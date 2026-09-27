@@ -8,23 +8,26 @@ package pki
 import (
 	"crypto/rand"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"math/big"
 	"time"
 )
 
+// RevocationEntity describes a certificate revocation entry.
 type RevocationEntity struct {
-	SerialNumber   int64     `yaml:"serial_number" json:"serial_number"`
-	RevocationTime time.Time `yaml:"revocation_time" json:"revocation_time"`
+	SerialNumber   int64     `json:"serial_number"   yaml:"serial_number"`
+	RevocationTime time.Time `json:"revocation_time" yaml:"revocation_time"`
 }
 
+// NewCRL creates a signed certificate revocation list.
 func NewCRL(rootCA Certificate, id int64, updateInterval time.Duration, revs []RevocationEntity) ([]byte, error) {
 	if !rootCA.IsValidPair() {
-		return nil, fmt.Errorf("invalid Root CA certificate")
+		return nil, errors.New("invalid Root CA certificate")
 	}
 
 	if !rootCA.IsCA() {
-		return nil, fmt.Errorf("invalid Root CA certificate: is not CA")
+		return nil, errors.New("invalid Root CA certificate: is not CA")
 	}
 
 	list := make([]x509.RevocationListEntry, 0, len(revs))

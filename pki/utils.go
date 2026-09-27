@@ -6,6 +6,7 @@
 package pki
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"strings"
@@ -13,7 +14,7 @@ import (
 
 func splitDomains(commonNames []string) ([]net.IP, []string, error) {
 	if len(commonNames) == 0 {
-		return nil, nil, fmt.Errorf("domains is empty")
+		return nil, nil, errors.New("domains is empty")
 	}
 
 	ips := make([]net.IP, 0, len(commonNames))
@@ -21,7 +22,11 @@ func splitDomains(commonNames []string) ([]net.IP, []string, error) {
 
 	for _, commonName := range stringsPrepare(commonNames) {
 		if ip, _, err := net.SplitHostPort(commonName); err == nil {
-			ips = append(ips, net.ParseIP(ip))
+			parsedIP := net.ParseIP(ip)
+			if parsedIP == nil {
+				return nil, nil, fmt.Errorf("invalid IP address %q", ip)
+			}
+			ips = append(ips, parsedIP)
 			continue
 		}
 
@@ -31,7 +36,8 @@ func splitDomains(commonNames []string) ([]net.IP, []string, error) {
 	return ips, domains, nil
 }
 
-func stringsPrepare(list []string) (out []string) {
+func stringsPrepare(list []string) []string {
+	out := make([]string, 0, len(list))
 	for _, s := range list {
 		s = strings.TrimSpace(s)
 		if len(s) == 0 {
@@ -39,5 +45,5 @@ func stringsPrepare(list []string) (out []string) {
 		}
 		out = append(out, strings.ToLower(s))
 	}
-	return
+	return out
 }

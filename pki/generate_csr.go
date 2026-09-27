@@ -8,14 +8,16 @@ package pki
 import (
 	"crypto/rand"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"math/big"
 	"time"
 )
 
+// NewCSR generates a certificate signing request for the supplied domains.
 func NewCSR(signatureAlgorithm x509.SignatureAlgorithm, domains ...string) (*Request, error) {
 	if len(domains) == 0 {
-		return nil, fmt.Errorf("no certificate domains provided")
+		return nil, errors.New("no certificate domains provided")
 	}
 
 	algName, ok := signatures.Get(signatureAlgorithm)
@@ -61,6 +63,7 @@ func NewCSR(signatureAlgorithm x509.SignatureAlgorithm, domains ...string) (*Req
 	return &Request{Key: key, Csr: cert}, nil
 }
 
+// SignCSR validates and signs a certificate signing request with the CA.
 func SignCSR(
 	conf Config,
 	rootCA Certificate,
@@ -68,16 +71,12 @@ func SignCSR(
 	deadline time.Duration,
 	serialNumber int64,
 ) (*x509.Certificate, error) {
-	if !rootCA.IsValidPair() {
-		return nil, fmt.Errorf("invalid Root CA certificate")
+	if err := validateSigningCA(rootCA, true); err != nil {
+		return nil, err
 	}
 
-	if !rootCA.IsCA() {
-		return nil, fmt.Errorf("invalid Root CA certificate: is not CA")
-	}
-
-	if rootCA.Crt.MaxPathLen != 0 {
-		return nil, fmt.Errorf("invalid Root CA certificate: not supported generate client certificate")
+	if err := csr.CheckSignature(); err != nil {
+		return nil, fmt.Errorf("invalid certificate request signature: %w", err)
 	}
 
 	confSigAlg := conf.SignatureAlgorithm
@@ -104,17 +103,17 @@ func SignCSR(
 		OCSPServer:            stringsPrepare(conf.OCSPServerURLs),
 		IssuingCertificateURL: stringsPrepare(conf.IssuingCertificateURLs),
 		CRLDistributionPoints: stringsPrepare(conf.CRLDistributionPointURLs),
-		//ExtraExtensions:       conf.extraExtensions(),
+		// ExtraExtensions:       conf.extraExtensions(),
 		DNSNames:    csr.DNSNames,
 		IPAddresses: csr.IPAddresses,
 	}
 
-	//publicKeyBytes, err := x509.MarshalPKIXPublicKey(csr.PublicKey)
-	//if err != nil {
+	// publicKeyBytes, err := x509.MarshalPKIXPublicKey(csr.PublicKey)
+	// if err != nil {
 	//	return nil, fmt.Errorf("failed marshaling public key: %w", err)
 	//}
-	//publicKeyHash := sha256.Sum256(publicKeyBytes)
-	//template.SubjectKeyId = publicKeyHash[:20]
+	// publicKeyHash := sha256.Sum256(publicKeyBytes)
+	// template.SubjectKeyId = publicKeyHash[:20]
 
 	b, err := x509.CreateCertificate(rand.Reader, template, rootCA.Crt, csr.PublicKey, rootCA.Key)
 	if err != nil {

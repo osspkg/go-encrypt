@@ -20,9 +20,13 @@ type testData struct {
 }
 
 func TestUnit_Adapter(t *testing.T) {
+	//nolint:gosec // The adapter supports caller-selected legacy digests.
 	ha := &hash.Adapter{H: md5.New()}
+	//nolint:gosec // This is a fixed expected value for the legacy-digest adapter test.
+	expectedMD5 := md5.Sum([]byte("123"))
 
 	casecheck.NoError(t, ha.Read(strings.NewReader("123")))
+	casecheck.Equal(t, expectedMD5[:], ha.Result())
 	casecheck.Equal(t, "202cb962ac59075b964b07152d234b70", ha.ResultHex())
 	casecheck.Equal(t, "ICy5YqxZB1uWSwcVLSNLcA==", ha.ResultBase64())
 	ha.Reset()

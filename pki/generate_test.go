@@ -140,6 +140,7 @@ func TestUnit_SignCSR(t *testing.T) {
 }
 
 func dump(t *testing.T, crt *pki.Certificate) {
+	t.Helper()
 	kb, err := pki.MarshalKeyPEM(crt.Key)
 	casecheck.NoError(t, err)
 	cb, err := pki.MarshalCrtPEM(*crt.Crt)
