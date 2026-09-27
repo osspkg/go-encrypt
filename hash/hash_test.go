@@ -20,6 +20,7 @@ type testData struct {
 }
 
 func TestUnit_Adapter(t *testing.T) {
+	//nolint:gosec // The adapter supports caller-selected legacy digests.
 	ha := &hash.Adapter{H: md5.New()}
 
 	casecheck.NoError(t, ha.Read(strings.NewReader("123")))

@@ -14,11 +14,13 @@ import (
 	"os"
 )
 
+// Request contains a certificate signing request and its corresponding private key.
 type Request struct {
 	Key crypto.Signer
 	Csr *x509.CertificateRequest
 }
 
+// SaveKey writes the private key to a file with restrictive permissions.
 func (c *Request) SaveKey(filepath string) error {
 	if c == nil || c.Key == nil {
 		return errors.New("no private key provided")
@@ -27,13 +29,14 @@ func (c *Request) SaveKey(filepath string) error {
 	if err != nil {
 		return fmt.Errorf("marshal private key: %w", err)
 	}
-	err = os.WriteFile(filepath, b, 0o600)
+	err = os.WriteFile(filepath, b, privateFileMode)
 	if err != nil {
 		return fmt.Errorf("save key to '%s': %w", filepath, err)
 	}
 	return nil
 }
 
+// SaveCert writes the certificate to a PEM file.
 func (c *Request) SaveCert(filepath string) error {
 	if c == nil || c.Csr == nil {
 		return errors.New("no certificate request provided")
@@ -42,13 +45,14 @@ func (c *Request) SaveCert(filepath string) error {
 	if err != nil {
 		return fmt.Errorf("marshal certificate request: %w", err)
 	}
-	err = os.WriteFile(filepath, b, 0o644)
+	err = os.WriteFile(filepath, b, publicFileMode)
 	if err != nil {
 		return fmt.Errorf("save certificate request to '%s': %w", filepath, err)
 	}
 	return nil
 }
 
+// LoadKey loads a private key from a PEM or DER file.
 func (c *Request) LoadKey(filepath string) error {
 	b, err := os.ReadFile(filepath)
 	if err != nil {
@@ -62,6 +66,7 @@ func (c *Request) LoadKey(filepath string) error {
 	return err
 }
 
+// LoadCert loads a certificate from a PEM or DER file.
 func (c *Request) LoadCert(filepath string) error {
 	b, err := os.ReadFile(filepath)
 	if err != nil {

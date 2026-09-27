@@ -4,9 +4,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package ocsp parses OCSP responses as specified in RFC 2560. OCSP responses
-// are signed messages attesting to the validity of a certificate for a small
-// period of time. This is used to manage revocation for X.509 certificates.
+// Package xocsp parses OCSP requests and creates OCSP responses.
 package xocsp
 
 import (
@@ -15,9 +13,9 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
-	_ "crypto/sha1"
-	_ "crypto/sha256"
-	_ "crypto/sha512"
+	_ "crypto/sha1"   // Registers SHA-1 for OCSP request compatibility.
+	_ "crypto/sha256" // Registers supported OCSP hash implementations.
+	_ "crypto/sha512" // Registers supported OCSP hash implementations.
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/asn1"
@@ -28,9 +26,18 @@ import (
 	"time"
 )
 
+const (
+	asn1TagNull              = 5
+	asn1TagResponderName     = 1
+	asn1TagKeyHash           = 2
+	asn1ClassContextSpecific = 2
+	bitsPerByte              = 8
+)
+
 var (
 	idPKIXOCSPBasic = asn1.ObjectIdentifier([]int{1, 3, 6, 1, 5, 5, 7, 48, 1, 1})
-	OIDNonce        = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 48, 1, 2}
+	// OIDNonce is the ASN.1 object identifier for the OCSP nonce extension.
+	OIDNonce = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 48, 1, 2}
 )
 
 // ResponseStatus contains the result of an OCSP request. See
@@ -38,10 +45,15 @@ var (
 type ResponseStatus int
 
 const (
-	Success       ResponseStatus = 0
-	Malformed     ResponseStatus = 1
+	// Success is the OCSP response status for a successful request.
+	Success ResponseStatus = 0
+	// Malformed indicates that the OCSP request could not be parsed.
+	Malformed ResponseStatus = 1
+	// InternalError indicates an internal OCSP responder failure.
 	InternalError ResponseStatus = 2
-	TryLater      ResponseStatus = 3
+	// TryLater indicates the responder cannot process this request now.
+	TryLater ResponseStatus = 3
+	// SignatureRequired indicates that a signed OCSP request is required.
 	// Status code four is unused in OCSP. See
 	// https://tools.ietf.org/html/rfc6960#section-4.2.1
 	SignatureRequired ResponseStatus = 5
@@ -189,8 +201,13 @@ var signatureAlgorithmDetails = []struct {
 }
 
 // TODO(rlb): This is also from crypto/x509, so same comment as AGL's below
-func signingParamsForPublicKey(pub interface{}, requestedSigAlgo x509.SignatureAlgorithm) (hashFunc crypto.Hash, sigAlgo pkix.AlgorithmIdentifier, err error) {
-	var pubType x509.PublicKeyAlgorithm
+func signingParamsForPublicKey(pub interface{}, requestedSigAlgo x509.SignatureAlgorithm) (crypto.Hash, pkix.AlgorithmIdentifier, error) {
+	var (
+		hashFunc crypto.Hash
+		sigAlgo  pkix.AlgorithmIdentifier
+		err      error
+		pubType  x509.PublicKeyAlgorithm
+	)
 
 	switch pub := pub.(type) {
 	case *rsa.PublicKey:
@@ -198,7 +215,7 @@ func signingParamsForPublicKey(pub interface{}, requestedSigAlgo x509.SignatureA
 		hashFunc = crypto.SHA256
 		sigAlgo.Algorithm = oidSignatureSHA256WithRSA
 		sigAlgo.Parameters = asn1.RawValue{
-			Tag: 5,
+			Tag: asn1TagNull,
 		}
 
 	case *ecdsa.PublicKey:
@@ -223,11 +240,11 @@ func signingParamsForPublicKey(pub interface{}, requestedSigAlgo x509.SignatureA
 	}
 
 	if err != nil {
-		return
+		return hashFunc, sigAlgo, err
 	}
 
 	if requestedSigAlgo == 0 {
-		return
+		return hashFunc, sigAlgo, nil
 	}
 
 	found := false
@@ -235,12 +252,12 @@ func signingParamsForPublicKey(pub interface{}, requestedSigAlgo x509.SignatureA
 		if details.algo == requestedSigAlgo {
 			if details.pubKeyAlgo != pubType {
 				err = errors.New("x509: requested SignatureAlgorithm does not match private key type")
-				return
+				return hashFunc, sigAlgo, err
 			}
 			sigAlgo.Algorithm, hashFunc = details.oid, details.hash
 			if hashFunc == 0 {
 				err = errors.New("x509: cannot sign with hash function requested")
-				return
+				return hashFunc, sigAlgo, err
 			}
 			found = true
 			break
@@ -251,7 +268,7 @@ func signingParamsForPublicKey(pub interface{}, requestedSigAlgo x509.SignatureA
 		err = errors.New("x509: unknown SignatureAlgorithm")
 	}
 
-	return
+	return hashFunc, sigAlgo, err
 }
 
 // TODO(agl): this is taken from crypto/x509 and so should probably be exported
@@ -335,7 +352,7 @@ func (req *Request) Marshal() ([]byte, error) {
 					Cert: certID{
 						pkix.AlgorithmIdentifier{
 							Algorithm:  hashAlg,
-							Parameters: asn1.RawValue{Tag: 5 /* ASN.1 NULL */},
+							Parameters: asn1.RawValue{Tag: asn1TagNull /* ASN.1 NULL */},
 						},
 						req.IssuerNameHash,
 						req.IssuerKeyHash,
@@ -544,13 +561,13 @@ func ParseResponseForCert(bytes []byte, cert, issuer *x509.Certificate) (*Respon
 	// released.
 	rawResponderID := basicResp.TBSResponseData.RawResponderID
 	switch rawResponderID.Tag {
-	case 1: // Name
+	case asn1TagResponderName: // Name
 		var rdn pkix.RDNSequence
 		if rest, err := asn1.Unmarshal(rawResponderID.Bytes, &rdn); err != nil || len(rest) != 0 {
 			return nil, ParseError("invalid responder name")
 		}
 		ret.RawResponderName = rawResponderID.Bytes
-	case 2: // KeyHash
+	case asn1TagKeyHash: // KeyHash
 		if rest, err := asn1.Unmarshal(rawResponderID.Bytes, &ret.ResponderKeyHash); err != nil || len(rest) != 0 {
 			return nil, ParseError("invalid responder key hash")
 		}
@@ -657,10 +674,12 @@ func CreateRequest(cert, issuer *x509.Certificate, opts *RequestOptions) ([]byte
 		return nil, err
 	}
 
+	//nolint:revive // hash.Hash.Write is documented to always return a nil error.
 	h.Write(publicKeyInfo.PublicKey.RightAlign())
 	issuerKeyHash := h.Sum(nil)
 
 	h.Reset()
+	//nolint:revive // hash.Hash.Write is documented to always return a nil error.
 	h.Write(issuer.RawSubject)
 	issuerNameHash := h.Sum(nil)
 
@@ -710,10 +729,12 @@ func CreateResponse(
 		return nil, fmt.Errorf("issuer hash algorithm %v not linked into binary", template.IssuerHash)
 	}
 	h := template.IssuerHash.New()
+	//nolint:revive // hash.Hash.Write is documented to always return a nil error.
 	h.Write(publicKeyInfo.PublicKey.RightAlign())
 	issuerKeyHash := h.Sum(nil)
 
 	h.Reset()
+	//nolint:revive // hash.Hash.Write is documented to always return a nil error.
 	h.Write(issuer.RawSubject)
 	issuerNameHash := h.Sum(nil)
 
@@ -721,7 +742,7 @@ func CreateResponse(
 		CertID: certID{
 			HashAlgorithm: pkix.AlgorithmIdentifier{
 				Algorithm:  hashOID,
-				Parameters: asn1.RawValue{Tag: 5 /* ASN.1 NULL */},
+				Parameters: asn1.RawValue{Tag: asn1TagNull /* ASN.1 NULL */},
 			},
 			NameHash:      issuerNameHash,
 			IssuerKeyHash: issuerKeyHash,
@@ -745,8 +766,8 @@ func CreateResponse(
 	}
 
 	rawResponderID := asn1.RawValue{
-		Class:      2, // context-specific
-		Tag:        1, // Name (explicit tag)
+		Class:      asn1ClassContextSpecific, // context-specific
+		Tag:        1,                        // Name (explicit tag)
 		IsCompound: true,
 		Bytes:      responderCert.RawSubject,
 	}
@@ -769,6 +790,7 @@ func CreateResponse(
 	}
 
 	responseHash := hashFunc.New()
+	//nolint:revive // hash.Hash.Write is documented to always return a nil error.
 	responseHash.Write(tbsResponseDataDER)
 	signature, err := priv.Sign(rand.Reader, responseHash.Sum(nil), hashFunc)
 	if err != nil {
@@ -780,7 +802,7 @@ func CreateResponse(
 		SignatureAlgorithm: signatureAlgorithm,
 		Signature: asn1.BitString{
 			Bytes:     signature,
-			BitLength: 8 * len(signature),
+			BitLength: bitsPerByte * len(signature),
 		},
 	}
 	if template.Certificate != nil {

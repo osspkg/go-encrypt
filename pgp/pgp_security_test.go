@@ -1,14 +1,26 @@
 package pgp_test
 
 import (
+	"bytes"
 	"testing"
+
+	"github.com/ProtonMail/go-crypto/openpgp"
+	"github.com/ProtonMail/go-crypto/openpgp/armor"
 
 	"go.osspkg.com/encrypt/pgp"
 )
 
 func TestSetKeyRejectsEmptyPrivateKeyring(t *testing.T) {
-	const emptyPrivateKey = "-----BEGIN PGP PRIVATE KEY BLOCK-----\n\n=twTO\n-----END PGP PRIVATE KEY BLOCK-----\n"
-	if err := pgp.New().SetKey([]byte(emptyPrivateKey), ""); err == nil {
+	var input bytes.Buffer
+	block, err := armor.Encode(&input, openpgp.PrivateKeyType, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := block.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := pgp.New().SetKey(input.Bytes(), ""); err == nil {
 		t.Fatal("SetKey accepted an empty private keyring")
 	}
 }

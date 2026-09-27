@@ -36,7 +36,8 @@ func splitDomains(commonNames []string) ([]net.IP, []string, error) {
 	return ips, domains, nil
 }
 
-func stringsPrepare(list []string) (out []string) {
+func stringsPrepare(list []string) []string {
+	out := make([]string, 0, len(list))
 	for _, s := range list {
 		s = strings.TrimSpace(s)
 		if len(s) == 0 {
@@ -44,5 +45,5 @@ func stringsPrepare(list []string) (out []string) {
 		}
 		out = append(out, strings.ToLower(s))
 	}
-	return
+	return out
 }

@@ -16,11 +16,13 @@ import (
 	"os"
 )
 
+// Certificate contains an X.509 certificate and its corresponding private key.
 type Certificate struct {
 	Key crypto.Signer
 	Crt *x509.Certificate
 }
 
+// IsValidPair reports whether key matches the certificate public key.
 func (c *Certificate) IsValidPair() bool {
 	if c == nil || c.Key == nil || c.Crt == nil {
 		return false
@@ -36,6 +38,7 @@ func (c *Certificate) IsValidPair() bool {
 	return false
 }
 
+// IsCA reports whether the certificate is a certificate authority.
 func (c *Certificate) IsCA() bool {
 	if c == nil || c.Crt == nil {
 		return false
@@ -43,6 +46,7 @@ func (c *Certificate) IsCA() bool {
 	return c.Crt.IsCA
 }
 
+// FingerPrint returns the certificate digest using h.
 func (c *Certificate) FingerPrint(h crypto.Hash) ([]byte, error) {
 	if c == nil || c.Crt == nil {
 		return nil, errors.New("no certificate provided")
@@ -53,11 +57,13 @@ func (c *Certificate) FingerPrint(h crypto.Hash) ([]byte, error) {
 	}
 
 	w := h.New()
+	//nolint:revive // hash.Hash.Write is documented to always return a nil error.
 	w.Write(c.Crt.Raw)
 
 	return w.Sum(nil), nil
 }
 
+// IssuerKeyHash returns the hash of the certificate public key bits.
 func (c *Certificate) IssuerKeyHash(h crypto.Hash) ([]byte, error) {
 	if c == nil || c.Crt == nil {
 		return nil, errors.New("no certificate provided")
@@ -77,11 +83,13 @@ func (c *Certificate) IssuerKeyHash(h crypto.Hash) ([]byte, error) {
 	}
 
 	w := h.New()
+	//nolint:revive // hash.Hash.Write is documented to always return a nil error.
 	w.Write(info.PublicKey.RightAlign())
 
 	return w.Sum(nil), nil
 }
 
+// IssuerNameHash returns the hash of the certificate subject name.
 func (c *Certificate) IssuerNameHash(h crypto.Hash) ([]byte, error) {
 	if c == nil || c.Crt == nil {
 		return nil, errors.New("no certificate provided")
@@ -92,11 +100,13 @@ func (c *Certificate) IssuerNameHash(h crypto.Hash) ([]byte, error) {
 	}
 
 	w := h.New()
+	//nolint:revive // hash.Hash.Write is documented to always return a nil error.
 	w.Write(c.Crt.RawSubject)
 
 	return w.Sum(nil), nil
 }
 
+// SaveKey writes the private key to a file with restrictive permissions.
 func (c *Certificate) SaveKey(filepath string) error {
 	if c == nil || c.Key == nil {
 		return errors.New("no private key provided")
@@ -105,13 +115,14 @@ func (c *Certificate) SaveKey(filepath string) error {
 	if err != nil {
 		return fmt.Errorf("marshal private key: %w", err)
 	}
-	err = os.WriteFile(filepath, b, 0o600)
+	err = os.WriteFile(filepath, b, privateFileMode)
 	if err != nil {
 		return fmt.Errorf("save key to '%s': %w", filepath, err)
 	}
 	return nil
 }
 
+// SaveCert writes the certificate to a PEM file.
 func (c *Certificate) SaveCert(filepath string) error {
 	if c == nil || c.Crt == nil {
 		return errors.New("no certificate provided")
@@ -120,13 +131,14 @@ func (c *Certificate) SaveCert(filepath string) error {
 	if err != nil {
 		return fmt.Errorf("marshal certificate: %w", err)
 	}
-	err = os.WriteFile(filepath, b, 0o644)
+	err = os.WriteFile(filepath, b, publicFileMode)
 	if err != nil {
 		return fmt.Errorf("save certificate to '%s': %w", filepath, err)
 	}
 	return nil
 }
 
+// LoadKey loads a private key from a PEM or DER file.
 func (c *Certificate) LoadKey(filepath string) error {
 	b, err := os.ReadFile(filepath)
 	if err != nil {
@@ -140,6 +152,7 @@ func (c *Certificate) LoadKey(filepath string) error {
 	return err
 }
 
+// LoadCert loads a certificate from a PEM or DER file.
 func (c *Certificate) LoadCert(filepath string) error {
 	b, err := os.ReadFile(filepath)
 	if err != nil {

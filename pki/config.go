@@ -8,9 +8,11 @@ package pki
 import (
 	"crypto/x509"
 	"crypto/x509/pkix"
-	"encoding/asn1"
 )
 
+// Config contains the X.509 subject fields, signature algorithm, and certificate
+// URLs used when generating certificates. A zero SignatureAlgorithm in a
+// signing operation inherits the issuer's algorithm where supported.
 type Config struct {
 	SignatureAlgorithm x509.SignatureAlgorithm `json:"signature_algorithm" yaml:"signature_algorithm"`
 
@@ -29,6 +31,9 @@ type Config struct {
 	CertificatePoliciesURLs  []string `json:"certificate_policies_urls,omitempty"    yaml:"certificate_policies_urls,omitempty"`
 }
 
+// Subject returns the distinguished name represented by the subject fields.
+// Empty fields are omitted; each configured attribute is represented by one
+// value.
 func (v Config) Subject() pkix.Name {
 	result := pkix.Name{}
 
@@ -56,18 +61,6 @@ func (v Config) Subject() pkix.Name {
 	if len(v.CommonName) > 0 {
 		result.CommonName = v.CommonName
 	}
-
-	return result
-}
-
-func (v Config) extraExtensions() []pkix.Extension {
-	var result []pkix.Extension
-
-	result = append(result, pkix.Extension{
-		Id:       asn1.ObjectIdentifier{2, 5, 29, 32},
-		Critical: false,
-		Value:    marshalPolicyCPSUrl(stringsPrepare(v.CertificatePoliciesURLs)...),
-	})
 
 	return result
 }

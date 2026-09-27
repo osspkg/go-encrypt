@@ -14,6 +14,7 @@ import (
 	"time"
 )
 
+// NewIntermediateCA generates an intermediate CA signed by rootCA.
 func NewIntermediateCA(
 	conf Config,
 	rootCA Certificate,
@@ -47,12 +48,8 @@ func NewIntermediateCA(
 		MaxPathLenZero: level <= 0,
 	}
 
-	if !rootCA.IsValidPair() {
-		return nil, errors.New("invalid Root CA certificate")
-	}
-
-	if !rootCA.IsCA() {
-		return nil, errors.New("invalid Root CA certificate: is not CA")
+	if err := validateSigningCA(rootCA, false); err != nil {
+		return nil, err
 	}
 
 	if template.MaxPathLen < 0 {
@@ -89,4 +86,17 @@ func NewIntermediateCA(
 	}
 
 	return &Certificate{Key: key, Crt: cert}, nil
+}
+
+func validateSigningCA(rootCA Certificate, requireLeafIssuer bool) error {
+	if !rootCA.IsValidPair() {
+		return errors.New("invalid Root CA certificate")
+	}
+	if !rootCA.IsCA() {
+		return errors.New("invalid Root CA certificate: is not CA")
+	}
+	if requireLeafIssuer && rootCA.Crt.MaxPathLen != 0 {
+		return errors.New("invalid Root CA certificate: not supported generate client certificate")
+	}
+	return nil
 }

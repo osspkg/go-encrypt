@@ -3,6 +3,7 @@
  *  Use of this source code is governed by a BSD 3-Clause license that can be found in the LICENSE file.
  */
 
+// Package hash provides adapters for hashing structured values.
 package hash
 
 import (
@@ -15,10 +16,14 @@ import (
 	"reflect"
 )
 
+// Adapter writes data into H and exposes the resulting digest. Initialize H
+// with a hash implementation such as sha256.New before using the Adapter.
 type Adapter struct {
 	H hash.Hash
 }
 
+// Read copies all data from r into H. It returns an error if H or r is nil or
+// if reading from r fails.
 func (a *Adapter) Read(r io.Reader) error {
 	if a.H == nil {
 		return errors.New("hash is nil")
@@ -31,6 +36,8 @@ func (a *Adapter) Read(r io.Reader) error {
 	return err
 }
 
+// Write writes b to H. It returns an error if H is nil or the hash rejects the
+// write.
 func (a *Adapter) Write(b []byte) error {
 	if a.H == nil {
 		return errors.New("hash is nil")
@@ -40,6 +47,7 @@ func (a *Adapter) Write(b []byte) error {
 	return err
 }
 
+// WriteString writes a string to the hash.
 func (a *Adapter) WriteString(s string) error {
 	if a.H == nil {
 		return errors.New("hash is nil")
@@ -49,6 +57,7 @@ func (a *Adapter) WriteString(s string) error {
 	return err
 }
 
+// WriteAny writes supported values to the hash.
 func (a *Adapter) WriteAny(args ...any) error {
 	if a.H == nil {
 		return errors.New("hash is nil")
@@ -67,6 +76,7 @@ func (a *Adapter) WriteAny(args ...any) error {
 	return nil
 }
 
+// Result returns the current hash digest.
 func (a *Adapter) Result() []byte {
 	if a.H == nil {
 		return nil
@@ -75,6 +85,7 @@ func (a *Adapter) Result() []byte {
 	return a.H.Sum(nil)
 }
 
+// ResultHex returns the current hash digest as hexadecimal.
 func (a *Adapter) ResultHex() string {
 	if a.H == nil {
 		return ""
@@ -83,6 +94,7 @@ func (a *Adapter) ResultHex() string {
 	return hex.EncodeToString(a.H.Sum(nil))
 }
 
+// ResultBase64 returns the current hash digest as base64.
 func (a *Adapter) ResultBase64() string {
 	if a.H == nil {
 		return ""
@@ -91,6 +103,7 @@ func (a *Adapter) ResultBase64() string {
 	return base64.StdEncoding.EncodeToString(a.H.Sum(nil))
 }
 
+// Reset resets the hash state.
 func (a *Adapter) Reset() {
 	if a.H == nil {
 		return

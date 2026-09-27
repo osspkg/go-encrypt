@@ -13,6 +13,7 @@ import (
 	"time"
 )
 
+// NewCA generates a self-signed certificate authority.
 func NewCA(
 	conf Config,
 	deadline time.Duration,

@@ -14,11 +14,13 @@ import (
 	"time"
 )
 
+// RevocationEntity describes a certificate revocation entry.
 type RevocationEntity struct {
 	SerialNumber   int64     `json:"serial_number"   yaml:"serial_number"`
 	RevocationTime time.Time `json:"revocation_time" yaml:"revocation_time"`
 }
 
+// NewCRL creates a signed certificate revocation list.
 func NewCRL(rootCA Certificate, id int64, updateInterval time.Duration, revs []RevocationEntity) ([]byte, error) {
 	if !rootCA.IsValidPair() {
 		return nil, errors.New("invalid Root CA certificate")

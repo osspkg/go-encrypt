@@ -16,15 +16,21 @@ import (
 
 var pemEndLine = []byte("\n-----END ")
 
+// TypePEMBlock identifies the PEM block type used by an encoder.
 type TypePEMBlock string
 
 const (
-	CertificatePEMBlock        TypePEMBlock = "CERTIFICATE"
-	PrivateKeyPEMBlock         TypePEMBlock = "PRIVATE KEY"
-	RevocationListPEMBlock     TypePEMBlock = "X509 CRL"
+	// CertificatePEMBlock is the PEM type label for an X.509 certificate.
+	CertificatePEMBlock TypePEMBlock = "CERTIFICATE"
+	// PrivateKeyPEMBlock is the PEM type label for PKCS #8 private keys.
+	PrivateKeyPEMBlock TypePEMBlock = "PRIVATE KEY"
+	// RevocationListPEMBlock is the PEM type label for a certificate revocation list.
+	RevocationListPEMBlock TypePEMBlock = "X509 CRL"
+	// CertificateRequestPEMBlock is the PEM label for an X.509 certificate request.
 	CertificateRequestPEMBlock TypePEMBlock = "CERTIFICATE REQUEST"
 )
 
+// CreatePEMBlock encodes bytes in a PEM block with the requested type and prefix.
 func CreatePEMBlock(b []byte, t TypePEMBlock, prefix string) []byte {
 	s := string(t)
 	if len(prefix) > 0 {
@@ -38,6 +44,7 @@ func CreatePEMBlock(b []byte, t TypePEMBlock, prefix string) []byte {
 
 // ---------------------------------------------------------------------------------------------------------------------
 
+// MarshalKeyDER encodes a private key as PKCS #8 DER.
 func MarshalKeyDER(key crypto.Signer) ([]byte, error) {
 	if key == nil {
 		return nil, errors.New("no private key provided")
@@ -51,6 +58,7 @@ func MarshalKeyDER(key crypto.Signer) ([]byte, error) {
 	return b, nil
 }
 
+// UnmarshalKeyDER parses a PKCS #8 DER private key.
 func UnmarshalKeyDER(b []byte) (crypto.Signer, error) {
 	if len(b) == 0 {
 		return nil, errors.New("no private key provided")
@@ -69,10 +77,12 @@ func UnmarshalKeyDER(b []byte) (crypto.Signer, error) {
 	return key, nil
 }
 
+// MarshalCrtDER returns the certificate DER bytes.
 func MarshalCrtDER(cert x509.Certificate) []byte {
 	return cert.Raw
 }
 
+// UnmarshalCrtDER parses a DER encoded X.509 certificate.
 func UnmarshalCrtDER(b []byte) (*x509.Certificate, error) {
 	if len(b) == 0 {
 		return nil, errors.New("no certificate provided")
@@ -86,6 +96,7 @@ func UnmarshalCrtDER(b []byte) (*x509.Certificate, error) {
 	return cert, nil
 }
 
+// MarshalKeyPEM encodes a private key as PKCS #8 PEM.
 func MarshalKeyPEM(key crypto.Signer) ([]byte, error) {
 	b, err := MarshalKeyDER(key)
 	if err != nil {
@@ -103,6 +114,7 @@ func MarshalKeyPEM(key crypto.Signer) ([]byte, error) {
 	return CreatePEMBlock(b, PrivateKeyPEMBlock, prefix), nil
 }
 
+// UnmarshalKeyPEM parses a PKCS #8 PEM private key.
 func UnmarshalKeyPEM(b []byte) (crypto.Signer, error) {
 	block, _ := pem.Decode(b)
 	if block == nil || !strings.HasSuffix(block.Type, string(PrivateKeyPEMBlock)) {
@@ -111,12 +123,14 @@ func UnmarshalKeyPEM(b []byte) (crypto.Signer, error) {
 	return UnmarshalKeyDER(block.Bytes)
 }
 
+// MarshalCrtPEM encodes an X.509 certificate as PEM.
 func MarshalCrtPEM(cert x509.Certificate) ([]byte, error) {
 	b := MarshalCrtDER(cert)
 
 	return CreatePEMBlock(b, CertificatePEMBlock, ""), nil
 }
 
+// UnmarshalCrtPEM parses a PEM encoded X.509 certificate.
 func UnmarshalCrtPEM(b []byte) (*x509.Certificate, error) {
 	block, _ := pem.Decode(b)
 	if block == nil || !strings.HasSuffix(block.Type, string(CertificatePEMBlock)) {
@@ -125,10 +139,12 @@ func UnmarshalCrtPEM(b []byte) (*x509.Certificate, error) {
 	return UnmarshalCrtDER(block.Bytes)
 }
 
+// MarshalCsrDER returns the certificate request DER bytes.
 func MarshalCsrDER(cert x509.CertificateRequest) []byte {
 	return cert.Raw
 }
 
+// UnmarshalCsrDER parses a DER encoded certificate request.
 func UnmarshalCsrDER(b []byte) (*x509.CertificateRequest, error) {
 	if len(b) == 0 {
 		return nil, errors.New("no CSR provided")
@@ -140,12 +156,14 @@ func UnmarshalCsrDER(b []byte) (*x509.CertificateRequest, error) {
 	return cert, nil
 }
 
+// MarshalCsrPEM encodes a certificate request as PEM.
 func MarshalCsrPEM(cert x509.CertificateRequest) ([]byte, error) {
 	b := MarshalCsrDER(cert)
 
 	return CreatePEMBlock(b, CertificateRequestPEMBlock, ""), nil
 }
 
+// UnmarshalCsrPEM parses a PEM encoded certificate request.
 func UnmarshalCsrPEM(b []byte) (*x509.CertificateRequest, error) {
 	block, _ := pem.Decode(b)
 	if block == nil || !strings.HasSuffix(block.Type, string(CertificateRequestPEMBlock)) {

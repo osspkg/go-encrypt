@@ -196,6 +196,11 @@ linters:
         - name: package-comments # Пакеты должны иметь комментарии
         - name: receiver-naming # Имена receiver (r, s, c, не this/self)
   exclusions:
+    rules:
+      - path: pki/internal/xocsp/ocsp.go
+        linters:
+          - revive
+          - nestif
     paths:
       - vendors/
   default: none

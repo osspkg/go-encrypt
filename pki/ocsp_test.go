@@ -16,7 +16,7 @@ type rejectingOCSPResolver struct {
 
 func (r *rejectingOCSPResolver) OCSPStatusResolve(context.Context, *pki.OCSPRequest) (*pki.OCSPResponse, error) {
 	r.called = true
-	return nil, nil
+	return &pki.OCSPResponse{}, nil
 }
 
 func TestOCSPHandlerRejectsOversizedRequest(t *testing.T) {
