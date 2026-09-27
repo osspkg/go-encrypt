@@ -7,6 +7,8 @@ package hash
 
 import (
 	"encoding/base64"
+	"encoding/hex"
+	"errors"
 	"fmt"
 	"hash"
 	"io"
@@ -19,10 +21,10 @@ type Adapter struct {
 
 func (a *Adapter) Read(r io.Reader) error {
 	if a.H == nil {
-		return fmt.Errorf("hash is nil")
+		return errors.New("hash is nil")
 	}
 	if r == nil {
-		return fmt.Errorf("reader is nil")
+		return errors.New("reader is nil")
 	}
 
 	_, err := io.Copy(a.H, r)
@@ -31,7 +33,7 @@ func (a *Adapter) Read(r io.Reader) error {
 
 func (a *Adapter) Write(b []byte) error {
 	if a.H == nil {
-		return fmt.Errorf("hash is nil")
+		return errors.New("hash is nil")
 	}
 
 	_, err := a.H.Write(b)
@@ -40,7 +42,7 @@ func (a *Adapter) Write(b []byte) error {
 
 func (a *Adapter) WriteString(s string) error {
 	if a.H == nil {
-		return fmt.Errorf("hash is nil")
+		return errors.New("hash is nil")
 	}
 
 	_, err := io.WriteString(a.H, s)
@@ -49,7 +51,7 @@ func (a *Adapter) WriteString(s string) error {
 
 func (a *Adapter) WriteAny(args ...any) error {
 	if a.H == nil {
-		return fmt.Errorf("hash is nil")
+		return errors.New("hash is nil")
 	}
 
 	for _, arg := range args {
@@ -78,7 +80,7 @@ func (a *Adapter) ResultHex() string {
 		return ""
 	}
 
-	return fmt.Sprintf("%x", a.H.Sum(nil))
+	return hex.EncodeToString(a.H.Sum(nil))
 }
 
 func (a *Adapter) ResultBase64() string {

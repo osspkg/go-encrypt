@@ -8,6 +8,7 @@ package aesgcm
 import (
 	"crypto/aes"
 	"crypto/cipher"
+	"errors"
 	"fmt"
 
 	"go.osspkg.com/random"
@@ -53,7 +54,7 @@ func (v *Codec) Decrypt(ciphertext []byte) ([]byte, error) {
 	}
 	nonceSize := gcm.NonceSize()
 	if len(ciphertext) < nonceSize {
-		return nil, fmt.Errorf("invalid message len")
+		return nil, errors.New("invalid message len")
 	}
 	nonce, ciphertext := ciphertext[:nonceSize], ciphertext[nonceSize:]
 	plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)

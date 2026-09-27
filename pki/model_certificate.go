@@ -11,6 +11,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/asn1"
+	"errors"
 	"fmt"
 	"os"
 )
@@ -44,11 +45,11 @@ func (c *Certificate) IsCA() bool {
 
 func (c *Certificate) FingerPrint(h crypto.Hash) ([]byte, error) {
 	if c == nil || c.Crt == nil {
-		return nil, fmt.Errorf("no certificate provided")
+		return nil, errors.New("no certificate provided")
 	}
 
 	if !h.Available() {
-		return nil, fmt.Errorf("hash algorithm not defined")
+		return nil, errors.New("hash algorithm not defined")
 	}
 
 	w := h.New()
@@ -59,11 +60,11 @@ func (c *Certificate) FingerPrint(h crypto.Hash) ([]byte, error) {
 
 func (c *Certificate) IssuerKeyHash(h crypto.Hash) ([]byte, error) {
 	if c == nil || c.Crt == nil {
-		return nil, fmt.Errorf("no certificate provided")
+		return nil, errors.New("no certificate provided")
 	}
 
 	if !h.Available() {
-		return nil, fmt.Errorf("hash algorithm not defined")
+		return nil, errors.New("hash algorithm not defined")
 	}
 
 	var info struct {
@@ -83,11 +84,11 @@ func (c *Certificate) IssuerKeyHash(h crypto.Hash) ([]byte, error) {
 
 func (c *Certificate) IssuerNameHash(h crypto.Hash) ([]byte, error) {
 	if c == nil || c.Crt == nil {
-		return nil, fmt.Errorf("no certificate provided")
+		return nil, errors.New("no certificate provided")
 	}
 
 	if !h.Available() {
-		return nil, fmt.Errorf("hash algorithm not defined")
+		return nil, errors.New("hash algorithm not defined")
 	}
 
 	w := h.New()
@@ -98,13 +99,13 @@ func (c *Certificate) IssuerNameHash(h crypto.Hash) ([]byte, error) {
 
 func (c *Certificate) SaveKey(filepath string) error {
 	if c == nil || c.Key == nil {
-		return fmt.Errorf("no private key provided")
+		return errors.New("no private key provided")
 	}
 	b, err := MarshalKeyPEM(c.Key)
 	if err != nil {
 		return fmt.Errorf("marshal private key: %w", err)
 	}
-	err = os.WriteFile(filepath, b, 0600)
+	err = os.WriteFile(filepath, b, 0o600)
 	if err != nil {
 		return fmt.Errorf("save key to '%s': %w", filepath, err)
 	}
@@ -113,13 +114,13 @@ func (c *Certificate) SaveKey(filepath string) error {
 
 func (c *Certificate) SaveCert(filepath string) error {
 	if c == nil || c.Crt == nil {
-		return fmt.Errorf("no certificate provided")
+		return errors.New("no certificate provided")
 	}
 	b, err := MarshalCrtPEM(*c.Crt)
 	if err != nil {
 		return fmt.Errorf("marshal certificate: %w", err)
 	}
-	err = os.WriteFile(filepath, b, 0644)
+	err = os.WriteFile(filepath, b, 0o644)
 	if err != nil {
 		return fmt.Errorf("save certificate to '%s': %w", filepath, err)
 	}

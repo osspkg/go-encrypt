@@ -1,4 +1,4 @@
-//FORK: golang.org/x/crypto/ocsp
+// FORK: golang.org/x/crypto/ocsp
 
 // Copyright 2013 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style

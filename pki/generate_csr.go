@@ -8,6 +8,7 @@ package pki
 import (
 	"crypto/rand"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"math/big"
 	"time"
@@ -15,7 +16,7 @@ import (
 
 func NewCSR(signatureAlgorithm x509.SignatureAlgorithm, domains ...string) (*Request, error) {
 	if len(domains) == 0 {
-		return nil, fmt.Errorf("no certificate domains provided")
+		return nil, errors.New("no certificate domains provided")
 	}
 
 	algName, ok := signatures.Get(signatureAlgorithm)
@@ -69,15 +70,19 @@ func SignCSR(
 	serialNumber int64,
 ) (*x509.Certificate, error) {
 	if !rootCA.IsValidPair() {
-		return nil, fmt.Errorf("invalid Root CA certificate")
+		return nil, errors.New("invalid Root CA certificate")
+	}
+
+	if err := csr.CheckSignature(); err != nil {
+		return nil, fmt.Errorf("invalid certificate request signature: %w", err)
 	}
 
 	if !rootCA.IsCA() {
-		return nil, fmt.Errorf("invalid Root CA certificate: is not CA")
+		return nil, errors.New("invalid Root CA certificate: is not CA")
 	}
 
 	if rootCA.Crt.MaxPathLen != 0 {
-		return nil, fmt.Errorf("invalid Root CA certificate: not supported generate client certificate")
+		return nil, errors.New("invalid Root CA certificate: not supported generate client certificate")
 	}
 
 	confSigAlg := conf.SignatureAlgorithm
@@ -104,12 +109,12 @@ func SignCSR(
 		OCSPServer:            stringsPrepare(conf.OCSPServerURLs),
 		IssuingCertificateURL: stringsPrepare(conf.IssuingCertificateURLs),
 		CRLDistributionPoints: stringsPrepare(conf.CRLDistributionPointURLs),
-		//ExtraExtensions:       conf.extraExtensions(),
+		// ExtraExtensions:       conf.extraExtensions(),
 		DNSNames:    csr.DNSNames,
 		IPAddresses: csr.IPAddresses,
 	}
 
-	//publicKeyBytes, err := x509.MarshalPKIXPublicKey(csr.PublicKey)
+	// publicKeyBytes, err := x509.MarshalPKIXPublicKey(csr.PublicKey)
 	//if err != nil {
 	//	return nil, fmt.Errorf("failed marshaling public key: %w", err)
 	//}

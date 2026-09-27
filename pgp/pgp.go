@@ -11,11 +11,11 @@ import (
 	"io"
 	"os"
 
+	"github.com/ProtonMail/go-crypto/openpgp"
+	"github.com/ProtonMail/go-crypto/openpgp/armor"
+	"github.com/ProtonMail/go-crypto/openpgp/clearsign"
+	"github.com/ProtonMail/go-crypto/openpgp/packet"
 	"go.osspkg.com/errors"
-	"golang.org/x/crypto/openpgp"
-	"golang.org/x/crypto/openpgp/armor"
-	"golang.org/x/crypto/openpgp/clearsign"
-	"golang.org/x/crypto/openpgp/packet"
 )
 
 type (
@@ -136,6 +136,9 @@ func (v *store) readKey(r io.ReadSeeker, passwd string) error {
 	if err != nil {
 		return errors.Wrapf(err, "read armored key")
 	}
+	if len(keys) == 0 || keys[0] == nil || keys[0].PrivateKey == nil {
+		return errors.New("private key is missing")
+	}
 	v.key = keys[0]
 	if v.key.PrivateKey.Encrypted {
 		if err = v.key.PrivateKey.Decrypt([]byte(passwd)); err != nil {
@@ -231,6 +234,13 @@ func NewCert(c Config, hash crypto.Hash, bits int, headers ...string) (*Cert, er
 	h, err := createHeaders(headers)
 	if err != nil {
 		return nil, errors.Wrapf(err, "parse headers")
+	}
+
+	// The maintained OpenPGP implementation rejects weak hashes such as MD5
+	// when generating keys. Keep signing keys on SHA-256 or stronger.
+	if hash != crypto.SHA256 && hash != crypto.SHA384 && hash != crypto.SHA512 &&
+		hash != crypto.SHA3_256 && hash != crypto.SHA3_512 {
+		hash = crypto.SHA256
 	}
 
 	conf := &packet.Config{

@@ -34,7 +34,7 @@ func NewCA(
 		OCSPServer:            stringsPrepare(conf.OCSPServerURLs),
 		IssuingCertificateURL: stringsPrepare(conf.IssuingCertificateURLs),
 		CRLDistributionPoints: stringsPrepare(conf.CRLDistributionPointURLs),
-		//ExtraExtensions:       conf.extraExtensions(),
+		// ExtraExtensions:       conf.extraExtensions(),
 		MaxPathLen:     intermediateCount,
 		MaxPathLenZero: intermediateCount <= 0,
 	}

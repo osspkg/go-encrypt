@@ -8,6 +8,7 @@ package pki
 import (
 	"crypto/rand"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"math/big"
 	"time"
@@ -21,15 +22,15 @@ func NewCRT(
 	domains ...string,
 ) (*Certificate, error) {
 	if !rootCA.IsValidPair() {
-		return nil, fmt.Errorf("invalid Root CA certificate")
+		return nil, errors.New("invalid Root CA certificate")
 	}
 
 	if !rootCA.IsCA() {
-		return nil, fmt.Errorf("invalid Root CA certificate: is not CA")
+		return nil, errors.New("invalid Root CA certificate: is not CA")
 	}
 
 	if rootCA.Crt.MaxPathLen != 0 {
-		return nil, fmt.Errorf("invalid Root CA certificate: not supported generate client certificate")
+		return nil, errors.New("invalid Root CA certificate: not supported generate client certificate")
 	}
 
 	confSigAlg := conf.SignatureAlgorithm
@@ -52,11 +53,11 @@ func NewCRT(
 		OCSPServer:            stringsPrepare(conf.OCSPServerURLs),
 		IssuingCertificateURL: stringsPrepare(conf.IssuingCertificateURLs),
 		CRLDistributionPoints: stringsPrepare(conf.CRLDistributionPointURLs),
-		//ExtraExtensions:       conf.extraExtensions(),
+		// ExtraExtensions:       conf.extraExtensions(),
 	}
 
 	if template.NotAfter.After(rootCA.Crt.NotAfter) {
-		return nil, fmt.Errorf("invalid deadline: cannot be in the future then NotAfter Root CA certificate")
+		return nil, errors.New("invalid deadline: cannot be in the future then NotAfter Root CA certificate")
 	}
 
 	var err error
@@ -86,7 +87,7 @@ func NewCRT(
 		return nil, fmt.Errorf("failed generating private key: %w", err)
 	}
 
-	//publicKeyBytes, err := x509.MarshalPKIXPublicKey(key.Public())
+	// publicKeyBytes, err := x509.MarshalPKIXPublicKey(key.Public())
 	//if err != nil {
 	//	return nil, fmt.Errorf("failed marshaling public key: %w", err)
 	//}

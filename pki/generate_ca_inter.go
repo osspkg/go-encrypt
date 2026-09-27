@@ -8,6 +8,7 @@ package pki
 import (
 	"crypto/rand"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"math/big"
 	"time"
@@ -41,25 +42,25 @@ func NewIntermediateCA(
 		OCSPServer:            stringsPrepare(conf.OCSPServerURLs),
 		IssuingCertificateURL: stringsPrepare(conf.IssuingCertificateURLs),
 		CRLDistributionPoints: stringsPrepare(conf.CRLDistributionPointURLs),
-		//ExtraExtensions:       conf.extraExtensions(),
+		// ExtraExtensions:       conf.extraExtensions(),
 		MaxPathLen:     level,
 		MaxPathLenZero: level <= 0,
 	}
 
 	if !rootCA.IsValidPair() {
-		return nil, fmt.Errorf("invalid Root CA certificate")
+		return nil, errors.New("invalid Root CA certificate")
 	}
 
 	if !rootCA.IsCA() {
-		return nil, fmt.Errorf("invalid Root CA certificate: is not CA")
+		return nil, errors.New("invalid Root CA certificate: is not CA")
 	}
 
 	if template.MaxPathLen < 0 {
-		return nil, fmt.Errorf("invalid Root CA certificate: not supported Intermediate CA")
+		return nil, errors.New("invalid Root CA certificate: not supported Intermediate CA")
 	}
 
 	if template.NotAfter.After(rootCA.Crt.NotAfter) {
-		return nil, fmt.Errorf("invalid Root CA certificate: NotAfter cannot be in the future")
+		return nil, errors.New("invalid Root CA certificate: NotAfter cannot be in the future")
 	}
 
 	algName, ok := signatures.Get(template.SignatureAlgorithm)

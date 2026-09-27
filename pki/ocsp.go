@@ -9,6 +9,7 @@ import (
 	"context"
 	"crypto"
 	"crypto/x509/pkix"
+	"errors"
 	"fmt"
 	"math/big"
 	"net/http"
@@ -18,6 +19,8 @@ import (
 
 	"go.osspkg.com/encrypt/pki/internal/xocsp"
 )
+
+const maxOCSPRequestBytes = 1 << 20
 
 type OCSPStatusResolver interface {
 	OCSPStatusResolve(ctx context.Context, r *OCSPRequest) (*OCSPResponse, error)
@@ -98,11 +101,15 @@ func (v *OCSPServer) HTTPHandler(w http.ResponseWriter, r *http.Request) {
 		raw []byte
 	)
 
-	if raw, err = ioutils.ReadAll(r.Body); err == nil {
-
+	if raw, err = ioutils.ReadAll(http.MaxBytesReader(w, r.Body, maxOCSPRequestBytes)); err != nil {
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			http.Error(w, "request body too large", http.StatusRequestEntityTooLarge)
+			return
+		}
+	} else {
 		var req *xocsp.Request
 		if req, err = xocsp.ParseRequest(raw); err == nil {
-
 			template.SerialNumber = req.SerialNumber
 
 			for _, extension := range req.Extensions {
@@ -124,7 +131,6 @@ func (v *OCSPServer) HTTPHandler(w http.ResponseWriter, r *http.Request) {
 				SerialNumber:   req.SerialNumber,
 				Extensions:     req.Extensions,
 			}); err == nil {
-
 				template.Status = int(resp.Status)
 
 				if resp.Status == OCSPStatusRevoked {

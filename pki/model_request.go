@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"crypto"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"os"
 )
@@ -20,13 +21,13 @@ type Request struct {
 
 func (c *Request) SaveKey(filepath string) error {
 	if c == nil || c.Key == nil {
-		return fmt.Errorf("no private key provided")
+		return errors.New("no private key provided")
 	}
 	b, err := MarshalKeyPEM(c.Key)
 	if err != nil {
 		return fmt.Errorf("marshal private key: %w", err)
 	}
-	err = os.WriteFile(filepath, b, 0600)
+	err = os.WriteFile(filepath, b, 0o600)
 	if err != nil {
 		return fmt.Errorf("save key to '%s': %w", filepath, err)
 	}
@@ -35,13 +36,13 @@ func (c *Request) SaveKey(filepath string) error {
 
 func (c *Request) SaveCert(filepath string) error {
 	if c == nil || c.Csr == nil {
-		return fmt.Errorf("no certificate request provided")
+		return errors.New("no certificate request provided")
 	}
 	b, err := MarshalCsrPEM(*c.Csr)
 	if err != nil {
 		return fmt.Errorf("marshal certificate request: %w", err)
 	}
-	err = os.WriteFile(filepath, b, 0644)
+	err = os.WriteFile(filepath, b, 0o644)
 	if err != nil {
 		return fmt.Errorf("save certificate request to '%s': %w", filepath, err)
 	}

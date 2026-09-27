@@ -9,6 +9,7 @@ import (
 	"crypto"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"strings"
 )
@@ -39,7 +40,7 @@ func CreatePEMBlock(b []byte, t TypePEMBlock, prefix string) []byte {
 
 func MarshalKeyDER(key crypto.Signer) ([]byte, error) {
 	if key == nil {
-		return nil, fmt.Errorf("no private key provided")
+		return nil, errors.New("no private key provided")
 	}
 
 	b, err := x509.MarshalPKCS8PrivateKey(key)
@@ -52,7 +53,7 @@ func MarshalKeyDER(key crypto.Signer) ([]byte, error) {
 
 func UnmarshalKeyDER(b []byte) (crypto.Signer, error) {
 	if len(b) == 0 {
-		return nil, fmt.Errorf("no private key provided")
+		return nil, errors.New("no private key provided")
 	}
 
 	raw, err := x509.ParsePKCS8PrivateKey(b)
@@ -62,7 +63,7 @@ func UnmarshalKeyDER(b []byte) (crypto.Signer, error) {
 
 	key, ok := raw.(crypto.Signer)
 	if !ok {
-		return nil, fmt.Errorf("PKCS#8 private key does not implement crypto.Signer")
+		return nil, errors.New("PKCS#8 private key does not implement crypto.Signer")
 	}
 
 	return key, nil
@@ -74,7 +75,7 @@ func MarshalCrtDER(cert x509.Certificate) []byte {
 
 func UnmarshalCrtDER(b []byte) (*x509.Certificate, error) {
 	if len(b) == 0 {
-		return nil, fmt.Errorf("no certificate provided")
+		return nil, errors.New("no certificate provided")
 	}
 
 	cert, err := x509.ParseCertificate(b)
@@ -92,7 +93,7 @@ func MarshalKeyPEM(key crypto.Signer) ([]byte, error) {
 	}
 
 	var prefix string
-	//for name, a := range algorithms.Yield() {
+	// for name, a := range algorithms.Yield() {
 	//	if !a.IsPrivateKey(key) {
 	//		continue
 	//	}
@@ -105,7 +106,7 @@ func MarshalKeyPEM(key crypto.Signer) ([]byte, error) {
 func UnmarshalKeyPEM(b []byte) (crypto.Signer, error) {
 	block, _ := pem.Decode(b)
 	if block == nil || !strings.HasSuffix(block.Type, string(PrivateKeyPEMBlock)) {
-		return nil, fmt.Errorf("no private key provided")
+		return nil, errors.New("no private key provided")
 	}
 	return UnmarshalKeyDER(block.Bytes)
 }
@@ -119,7 +120,7 @@ func MarshalCrtPEM(cert x509.Certificate) ([]byte, error) {
 func UnmarshalCrtPEM(b []byte) (*x509.Certificate, error) {
 	block, _ := pem.Decode(b)
 	if block == nil || !strings.HasSuffix(block.Type, string(CertificatePEMBlock)) {
-		return nil, fmt.Errorf("no certificate provided")
+		return nil, errors.New("no certificate provided")
 	}
 	return UnmarshalCrtDER(block.Bytes)
 }
@@ -130,7 +131,7 @@ func MarshalCsrDER(cert x509.CertificateRequest) []byte {
 
 func UnmarshalCsrDER(b []byte) (*x509.CertificateRequest, error) {
 	if len(b) == 0 {
-		return nil, fmt.Errorf("no CSR provided")
+		return nil, errors.New("no CSR provided")
 	}
 	cert, err := x509.ParseCertificateRequest(b)
 	if err != nil {
@@ -148,7 +149,7 @@ func MarshalCsrPEM(cert x509.CertificateRequest) ([]byte, error) {
 func UnmarshalCsrPEM(b []byte) (*x509.CertificateRequest, error) {
 	block, _ := pem.Decode(b)
 	if block == nil || !strings.HasSuffix(block.Type, string(CertificateRequestPEMBlock)) {
-		return nil, fmt.Errorf("no certificate provided")
+		return nil, errors.New("no certificate provided")
 	}
 	return UnmarshalCsrDER(block.Bytes)
 }
