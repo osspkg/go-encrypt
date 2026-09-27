@@ -145,7 +145,7 @@ func (v *store) readKey(r io.ReadSeeker, passwd string) error {
 		return errors.Wrapf(err, "armor decode key")
 	}
 	if block.Type != openpgp.PrivateKeyType {
-		return errors.Wrapf(err, "invalid key type")
+		return errors.New("invalid key type")
 	}
 	if _, err = r.Seek(0, 0); err != nil {
 		return errors.Wrapf(err, "seek key file")
@@ -171,6 +171,9 @@ func (v *store) readKey(r io.ReadSeeker, passwd string) error {
 func (v *store) Sign(in io.Reader, out io.Writer) error {
 	if v.key == nil {
 		return errors.New("key is empty")
+	}
+	if in == nil || out == nil {
+		return errors.New("input reader and output writer are required")
 	}
 
 	w, err := clearsign.Encode(out, v.key.PrivateKey, v.conf)

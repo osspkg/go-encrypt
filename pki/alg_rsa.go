@@ -64,7 +64,7 @@ func (*_rsa) Generate(alg x509.SignatureAlgorithm) (crypto.Signer, error) {
 	case x509.SHA512WithRSA, x509.SHA384WithRSA,
 		x509.SHA512WithRSAPSS, x509.SHA384WithRSAPSS:
 		bits = 4096
-	case x509.SHA256WithRSA:
+	case x509.SHA256WithRSA, x509.SHA256WithRSAPSS:
 		bits = 3072
 	default:
 		return nil, fmt.Errorf("unknown certificate bits for '%s'", alg.String())

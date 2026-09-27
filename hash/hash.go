@@ -65,8 +65,14 @@ func (a *Adapter) WriteAny(args ...any) error {
 
 	for _, arg := range args {
 		ref := reflect.ValueOf(arg)
+		if !ref.IsValid() {
+			return errors.New("value is nil")
+		}
 		if ref.Kind() == reflect.Ptr {
 			ref = ref.Elem()
+			if !ref.IsValid() {
+				return errors.New("value is nil")
+			}
 		}
 		if _, err := fmt.Fprintf(a.H, "%#v", ref.Interface()); err != nil {
 			return err

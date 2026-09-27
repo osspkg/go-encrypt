@@ -21,6 +21,10 @@ func NewIntermediateCA(
 	deadline time.Duration,
 	serialNumber int64,
 ) (*Certificate, error) {
+	if err := validateSigningCA(rootCA, false); err != nil {
+		return nil, err
+	}
+
 	confSigAlg := conf.SignatureAlgorithm
 	if confSigAlg == x509.UnknownSignatureAlgorithm {
 		confSigAlg = rootCA.Crt.SignatureAlgorithm
@@ -46,10 +50,6 @@ func NewIntermediateCA(
 		// ExtraExtensions:       conf.extraExtensions(),
 		MaxPathLen:     level,
 		MaxPathLenZero: level <= 0,
-	}
-
-	if err := validateSigningCA(rootCA, false); err != nil {
-		return nil, err
 	}
 
 	if template.MaxPathLen < 0 {
