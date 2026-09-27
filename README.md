@@ -1,111 +1,161 @@
 # go-encrypt
 
-Cryptographic helpers for Go: AES-GCM encryption, OpenPGP key generation and
+[![CI](https://github.com/osspkg/go-encrypt/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/osspkg/go-encrypt/actions/workflows/ci.yml)
+[![Go Reference](https://pkg.go.dev/badge/go.osspkg.com/encrypt.svg)](https://pkg.go.dev/go.osspkg.com/encrypt)
+[![License](https://img.shields.io/github/license/osspkg/go-encrypt)](LICENSE)
+
+Cryptographic utilities for Go: AES-GCM encryption, OpenPGP key generation and
 cleartext signatures, and X.509 certificate, CSR, CRL, and OCSP operations.
 
-## Packages
+## Requirements
 
-- [`aesgcm`](./aesgcm): AES-256-GCM with a fresh nonce prepended to each
-  ciphertext.
-- [`hash`](./hash): write byte streams and Go values into a `hash.Hash` and
-  retrieve the digest in binary, hexadecimal, or base64 form.
-- [`pgp`](./pgp): generate OpenPGP key pairs and sign cleartext messages.
-- [`pki`](./pki): create and encode X.509 keys, certificates, requests, and
-  revocation data; serve OCSP responses.
+- Go 1.26 or newer
 
-## Install
+## Installation
 
 ```sh
 go get go.osspkg.com/encrypt
 ```
 
-The module requires Go 1.26 or newer.
+Import the package you need, for example:
 
-## Examples
+```go
+import "go.osspkg.com/encrypt/aesgcm"
+```
+
+The examples below show function bodies. Add the package import for the example
+and the standard-library imports referenced by its code.
+
+## Packages
+
+| Package | Purpose |
+| --- | --- |
+| [`aesgcm`](aesgcm) | AES-256-GCM authenticated encryption |
+| [`hash`](hash) | Write byte streams and Go values to a `hash.Hash`; get binary, hex, or base64 digests |
+| [`pgp`](pgp) | Generate armored OpenPGP key pairs and create cleartext signatures |
+| [`pki`](pki) | Generate and encode X.509 keys, certificates, CSRs, and CRLs; serve OCSP responses |
+
+## Usage
 
 ### AES-GCM
 
 ```go
-package main
+key := make([]byte, 32)
+if _, err := rand.Read(key); err != nil {
+    return err
+}
 
-import (
-	"crypto/rand"
-	"fmt"
+codec, err := aesgcm.New(key)
+if err != nil {
+    return err
+}
 
-	"go.osspkg.com/encrypt/aesgcm"
-)
+ciphertext, err := codec.Encrypt([]byte("secret message"))
+if err != nil {
+    return err
+}
 
-func main() {
-	key := make([]byte, 32)
-	if _, err := rand.Read(key); err != nil {
-		panic(err)
-	}
-	codec, err := aesgcm.New(key)
-	if err != nil {
-		panic(err)
-	}
+plaintext, err := codec.Decrypt(ciphertext)
+if err != nil {
+    return err
+}
+_ = plaintext
+```
 
-	ciphertext, err := codec.Encrypt([]byte("secret message"))
-	if err != nil {
-		panic(err)
-	}
-	plaintext, err := codec.Decrypt(ciphertext)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(string(plaintext))
+`New` requires a 32-byte key and copies it. Each encryption generates a fresh
+nonce and prepends it to the returned ciphertext; store or transmit the whole
+slice so it can be decrypted. `Decrypt` returns an error if authentication
+fails. Generate and protect keys with a cryptographically secure source.
+
+### Hash values
+
+```go
+adapter := &hash.Adapter{H: sha256.New()}
+if err := adapter.WriteString("message"); err != nil {
+    return err
+}
+digest := adapter.ResultHex()
+_ = digest
+```
+
+`WriteAny` hashes Go's formatted representation of each value; it is not a
+canonical serialization format. Use a stable encoding when a digest must remain
+reproducible across program or schema changes.
+
+### OpenPGP signing
+
+```go
+keys, err := pgp.NewCert(pgp.Config{
+    Name:  "Example User",
+    Email: "user@example.com",
+}, crypto.SHA256, 3072)
+if err != nil {
+    return err
+}
+
+signer := pgp.New()
+if err := signer.SetKey(keys.Private, ""); err != nil {
+    return err
+}
+var output bytes.Buffer
+if err := signer.Sign(strings.NewReader("message to sign"), &output); err != nil {
+    return err
 }
 ```
 
-Use a cryptographically random, unique key and protect it as a secret. The
-returned ciphertext includes its nonce; store or transmit the complete byte
-slice. Authentication failure makes `Decrypt` return an error. Do not reuse a
-key with other encryption schemes unless their nonce and key requirements are
-compatible.
+`NewCert` returns armored public and private keys. Hashes unsupported or too
+weak for key generation fall back to SHA-256. `NewCertSHA512` uses SHA-512 and a
+4096-bit RSA key. Keep private keys protected and distribute only the public
+key where needed.
 
-### Create an X.509 CA
+### X.509 certificate authority
 
 ```go
-package main
-
-import (
-	"crypto/x509"
-	"time"
-
-	"go.osspkg.com/encrypt/pki"
-)
-
-func main() {
-	ca, err := pki.NewCA(pki.Config{
-		SignatureAlgorithm: x509.ECDSAWithSHA256,
-		CommonName:         "Example Root CA",
-	}, 10*365*24*time.Hour, 1, 2)
-	if err != nil {
-		panic(err)
-	}
-	if err := ca.SaveKey("ca-key.pem"); err != nil {
-		panic(err)
-	}
-	if err := ca.SaveCert("ca-cert.pem"); err != nil {
-		panic(err)
-	}
+ca, err := pki.NewCA(pki.Config{
+    SignatureAlgorithm: x509.ECDSAWithSHA256,
+    CommonName:         "Example Root CA",
+}, 10*365*24*time.Hour, 1, 2)
+if err != nil {
+    return err
+}
+if err := ca.SaveKey("ca-key.pem"); err != nil {
+    return err
+}
+if err := ca.SaveCert("ca-cert.pem"); err != nil {
+    return err
 }
 ```
 
 Private keys are saved as PKCS #8 PEM with restrictive file permissions. Keep
-CA keys offline or in a protected key store. `NewCRT` and `SignCSR` issue leaf
-certificates from a CA; `NewIntermediateCA` creates an intermediate CA.
+CA keys offline or in a protected key store. `NewIntermediateCA` creates an
+intermediate CA; `NewCRT` and `SignCSR` issue leaf certificates.
 
-## Notes
+## Security notes
 
-- `pgp.NewCert` accepts an OpenPGP hash and RSA key size. Unsupported or weak
-  key-generation hashes are replaced with SHA-256. `pgp.NewCertSHA512` uses
-  SHA-512 and a 4096-bit RSA key.
-- `pki.OCSPServer.HTTPHandler` limits each request body to 1 MiB and returns
-  HTTP 413 when the limit is exceeded.
-- Cryptographic primitives are provided by Go's standard library and the
-  maintained ProtonMail OpenPGP implementation.
+- `pki.OCSPServer.HTTPHandler` reads at most 1 MiB from each request body and
+  returns HTTP 413 when the limit is exceeded.
+- The `pgp` package uses the maintained ProtonMail OpenPGP implementation.
+- Cryptographic operations do not replace key management, certificate
+  validation, or application-specific security review.
+
+## Contributing
+
+Pull requests should include tests for behavior changes and pass the repository
+checks. GitHub Actions runs `make ci` on pushes and pull requests to `master`.
+
+## Development
+
+Run Make targets from the repository root:
+
+```sh
+make tests
+make lint
+make build
+```
+
+`make lint` may update files; review `git diff` after running it. See
+[AGENTS.md](AGENTS.md) for repository-specific development instructions.
 
 ## License
 
-BSD 3-Clause. See [LICENSE](./LICENSE).
+BSD 3-Clause. See [LICENSE](LICENSE).
