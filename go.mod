@@ -3,7 +3,7 @@ module go.osspkg.com/encrypt
 go 1.26.0
 
 require (
-	github.com/ProtonMail/go-crypto v1.5.1
+	github.com/ProtonMail/go-crypto v1.5.2
 	go.osspkg.com/casecheck v0.3.2
 	go.osspkg.com/errors v0.4.0
 	go.osspkg.com/ioutils v0.8.0
